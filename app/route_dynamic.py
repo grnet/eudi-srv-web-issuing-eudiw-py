@@ -306,7 +306,7 @@ def dynamic_R1(country):
         country_data = cfgcountries.supported_countries[country]["oidc_auth"]
 
         metadata_url = country_data["base_url"] + "/.well-known/openid-configuration"
-        metadata_json = requests.get(metadata_url).json()
+        metadata_json = requests.get(metadata_url, verify=False).json()
 
         authorization_endpoint = metadata_json["authorization_endpoint"]
 
@@ -523,7 +523,7 @@ def red():
         cfgcountries.supported_countries[session["country"]]["oidc_auth"]["base_url"]
         + "/.well-known/openid-configuration"
     )
-    metadata_json = requests.get(metadata_url).json()
+    metadata_json = requests.get(metadata_url, verify=False).json()
 
     token_endpoint = metadata_json["token_endpoint"]
 
@@ -770,7 +770,7 @@ def dynamic_R2_data_collect(country, user_id):
         url = attribute_request["url"] + user_id
         # headers = attribute_request["header"]
         try:
-            r2 = requests.get(url)
+            r2 = requests.get(url, verify=False)
             print("\nr2", r2)
             print("\nr2", r2.text)
             json_response = r2.json()
@@ -798,7 +798,7 @@ def dynamic_R2_data_collect(country, user_id):
             ]
             + "/.well-known/openid-configuration"
         )
-        metadata_json = requests.get(metadata_url).json()
+        metadata_json = requests.get(metadata_url, verify=False).json()
 
         userinfo_endpoint = metadata_json["userinfo_endpoint"]
 
@@ -812,7 +812,7 @@ def dynamic_R2_data_collect(country, user_id):
             headers["Authorization"] = f"Bearer {user_id}"
 
         try:
-            r2 = requests.get(url, headers=headers)
+            r2 = requests.get(url, headers=headers, verify=False)
             json_response = json.loads(r2.text)
             data = json_response
             if (
