@@ -33,7 +33,7 @@
     }
   },
   "port": 5000,
-  "domain": "issuer.eudiw.dev",
+  "domain": "192.168.134.214",
   "server_name": "{domain}",
   "base_url": "https://{domain}",
   "op": {
@@ -364,7 +364,7 @@
     "ca_bundle": null,
     "verify_user": false,
     "port": 5000,
-    "domain": "issuer.eudiw.dev",
+    "domain": "192.168.134.214",
     "debug": true
   }
 }
