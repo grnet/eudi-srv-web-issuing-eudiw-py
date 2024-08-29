@@ -317,7 +317,7 @@ def authorizationv2(
 
     payload = {}
     headers = {}
-    response = requests.request("GET", url, headers=headers, data=payload)
+    response = requests.request("GET", url, headers=headers, data=payload, verify=False)
 
     if response.status_code != 200:
         log.logger_error.error("Authorization endpoint invalid request")
@@ -411,7 +411,7 @@ def authorizationV3():
 
     payload = {}
     headers = {}
-    response = requests.request("GET", url, headers=headers, data=payload)
+    response = requests.request("GET", url, headers=headers, data=payload, verify=False)
 
     if response.status_code != 200:
         log.logger_error.error("Authorization endpoint invalid request")
@@ -454,7 +454,7 @@ def pid_authorization_get():
         "Content-Type": "application/json",
     }
 
-    response = requests.request("GET", url, headers=headers)
+    response = requests.request("GET", url, headers=headers, verify=False)
     if response.status_code != 200:
         error_msg = str(response.status_code)
         return jsonify({"error": error_msg}), 500
@@ -592,7 +592,7 @@ def token():
         )
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
-        response = requests.request("POST", url, headers=headers, data=payload)
+        response = requests.request("POST", url, headers=headers, data=payload, verify=False)
         if response.status_code != 200:
             return make_response("invalid_request", 400)
 
