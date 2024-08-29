@@ -711,7 +711,7 @@ class TestDynamicR2DataCollect:
         mock_session = MagicMock()
         mock_get_session.return_value = mock_session
 
-        def mocked_requests_get(url, headers=None):
+        def mocked_requests_get(url, headers=None, verify=False):
             if ".well-known/openid-configuration" in url:
                 response = MagicMock()
                 response.json.return_value = {

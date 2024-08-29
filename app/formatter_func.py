@@ -152,7 +152,7 @@ def mdocFormatter(
         }
 
         response = requests.post(
-            cfgservice.revocation_service_url, headers=headers, data=payload
+            cfgservice.revocation_service_url, headers=headers, data=payload, verify=False
         )
 
         if response.status_code == 200:
@@ -314,7 +314,7 @@ def sdjwtFormatter(PID, country):
         }
 
         response = requests.post(
-            cfgservice.revocation_service_url, headers=headers, data=payload
+            cfgservice.revocation_service_url, headers=headers, data=payload, verify=False
         )
 
         if response.status_code == 200:

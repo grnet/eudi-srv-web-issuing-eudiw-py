@@ -49,7 +49,7 @@ class TestRedirectFunc:
         payload = {"key": "value"}
         resp = rf.json_post(url, payload)
         mock_post.assert_called_once_with(
-            url, json=payload, headers={"Content-Type": "application/json"}
+            url, json=payload, headers={"Content-Type": "application/json"}, verify=False
         )
         assert resp.status_code == 200
 
