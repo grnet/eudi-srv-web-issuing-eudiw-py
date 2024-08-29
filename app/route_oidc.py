@@ -280,7 +280,7 @@ def pid_authorization_get():
         "Content-Type": "application/json",
     }
 
-    response = requests.request("GET", url, headers=headers)
+    response = requests.request("GET", url, headers=headers, verify=False)
     if response.status_code != 200:
         error_msg = str(response.status_code)
         return jsonify({"error": error_msg}), 500
@@ -304,7 +304,7 @@ def verify_introspection(bearer_token):
 
     try:
         response = requests.request(
-            "POST", introspection_url, headers=headers, data=payload
+            "POST", introspection_url, headers=headers, data=payload, verify=False
         )
         response.raise_for_status()  # Raises an HTTPError for 4xx/5xx status codes
 
@@ -545,7 +545,7 @@ def generate_credentials(credential_request, session_id):
 
     json_data = json.dumps(data)
     headers = {"Content-Type": "application/json"}
-    _msg = requests.post(redirect_uri, data=json_data, headers=headers).json()
+    _msg = requests.post(redirect_uri, data=json_data, headers=headers, verify=False).json()
 
     return _msg
 

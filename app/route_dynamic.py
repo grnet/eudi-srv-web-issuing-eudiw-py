@@ -249,7 +249,7 @@ def dynamic_R1(country):
         country_data = CONFIGURATION["countries"][country]["auth"]
 
         metadata_url = country_data["base_url"] + "/.well-known/openid-configuration"
-        metadata_json = requests.get(metadata_url).json()
+        metadata_json = requests.get(metadata_url, verify=False).json()
 
         authorization_endpoint = metadata_json["authorization_endpoint"]
 
@@ -266,7 +266,7 @@ def get_metadata(base_url):
 
     for url in urls:
         try:
-            res = requests.get(url, timeout=5)
+            res = requests.get(url, timeout=5, verify=False)
             if res.status_code == 200:
                 data = res.json()
                 if "token_endpoint" in data:
@@ -534,14 +534,14 @@ def dynamic_R2_data_collect(country, session_id, access_token):
             + "/.well-known/oauth-authorization-server"
         )
 
-        metadata_json = requests.get(metadata_url).json()
+        metadata_json = requests.get(metadata_url, verify=False).json()
 
         user_info_endpoint = metadata_json["userinfo_endpoint"]
 
         headers = {"Authorization": f"Bearer {access_token}"}
 
         try:
-            response = requests.get(user_info_endpoint, headers=headers)
+            response = requests.get(user_info_endpoint, headers=headers, verify=False)
 
             response.raise_for_status()
 
@@ -617,7 +617,7 @@ def dynamic_R2_data_collect(country, session_id, access_token):
             headers["Authorization"] = f"Bearer {access_token}"
 
         try:
-            r2 = requests.get(url, headers=headers)
+            r2 = requests.get(url, headers=headers, verify=False)
             json_response = json.loads(r2.text)
             data = json_response
             if (
@@ -1230,7 +1230,7 @@ def generate_connector_authorization_url(
         f"{oauth_data.get('base_url')}/.well-known/oauth-authorization-server"
     )
 
-    metadata_json = requests.get(metadata_url).json()
+    metadata_json = requests.get(metadata_url, verify=False).json()
 
     authorization_endpoint = metadata_json["authorization_endpoint"]
 
