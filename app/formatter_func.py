@@ -164,7 +164,7 @@ def mdocFormatter(
         }
 
         response = requests.post(
-            CONFIGURATION["revocation"]["take_url"], headers=headers, data=payload
+            CONFIGURATION["revocation"]["take_url"], headers=headers, data=payload, verify=False
         )
 
         if response.status_code == 200:
@@ -348,7 +348,7 @@ def sdjwtFormatter(PID, country, scope, session_id):
         }
 
         response = requests.post(
-            CONFIGURATION["revocation"]["take_url"], headers=headers, data=payload
+            CONFIGURATION["revocation"]["take_url"], headers=headers, data=payload, verify=False
         )
 
         if response.status_code == 200:
