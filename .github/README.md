@@ -17,7 +17,7 @@ Studio IDE, Android SDK, Android Debugging Bridge).
 
 2. Find the <IP> of the Linux device in the local network (`ifconfig ...`).
 
-3. In this repo, search and replace: `192.168.134.214` -> `<IP>`:
+3. In this repo, search and replace: `83.212.99.99` (snf-895798.vm.okeanos.grnet.gr) -> `<IP>`:
 ```
 ./patch_ip.sh IP
 ```
