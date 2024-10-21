@@ -13,7 +13,7 @@
         "urn:ietf:params:oauth:grant-type:jwt-bearer",
         "refresh_token"
     ],
-    "jwks_uri": "https://83.212.99.99:5000/static/jwks.json",
+    "jwks_uri": "https://snf-895798.vm.okeanos.grnet.gr:5000/static/jwks.json",
     "scopes_supported": [
         "openid"
     ],
@@ -78,13 +78,13 @@
     "code_challenge_methods_supported": [
         "S256"
     ],
-    "issuer": "https://83.212.99.99:5000",
-    "registration_endpoint": "https://83.212.99.99:5000/registration",
-    "introspection_endpoint": "https://83.212.99.99:5000/introspection",
-    "authorization_endpoint": "https://83.212.99.99:5000/authorizationV3",
-    "token_endpoint": "https://83.212.99.99:5000/token",
-    "userinfo_endpoint": "https://83.212.99.99:5000/userinfo",
-    "end_session_endpoint": "https://83.212.99.99:5000/session",
-    "pushed_authorization_request_endpoint": "https://83.212.99.99:5000/pushed_authorizationv2",
-    "credential_endpoint": "https://83.212.99.99:5000/credential"
+    "issuer": "https://snf-895798.vm.okeanos.grnet.gr:5000",
+    "registration_endpoint": "https://snf-895798.vm.okeanos.grnet.gr:5000/registration",
+    "introspection_endpoint": "https://snf-895798.vm.okeanos.grnet.gr:5000/introspection",
+    "authorization_endpoint": "https://snf-895798.vm.okeanos.grnet.gr:5000/authorizationV3",
+    "token_endpoint": "https://snf-895798.vm.okeanos.grnet.gr:5000/token",
+    "userinfo_endpoint": "https://snf-895798.vm.okeanos.grnet.gr:5000/userinfo",
+    "end_session_endpoint": "https://snf-895798.vm.okeanos.grnet.gr:5000/session",
+    "pushed_authorization_request_endpoint": "https://snf-895798.vm.okeanos.grnet.gr:5000/pushed_authorizationv2",
+    "credential_endpoint": "https://snf-895798.vm.okeanos.grnet.gr:5000/credential"
 }

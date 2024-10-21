@@ -33,7 +33,7 @@
     }
   },
   "port": 5000,
-  "domain": "83.212.99.99",
+  "domain": "snf-895798.vm.okeanos.grnet.gr",
   "server_name": "{domain}",
   "base_url": "https://{domain}",
   "op": {
@@ -364,7 +364,7 @@
     "ca_bundle": null,
     "verify_user": false,
     "port": 5000,
-    "domain": "83.212.99.99",
+    "domain": "snf-895798.vm.okeanos.grnet.gr",
     "debug": true
   }
 }
