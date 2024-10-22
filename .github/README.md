@@ -17,11 +17,19 @@ Studio IDE, Android SDK, Android Debugging Bridge).
 
 2. Find the <IP> of the Linux device in the local network (`ifconfig ...`).
 
-3. In this repo, search and replace: `83.212.99.99` (snf-895798.vm.okeanos.grnet.gr) -> `<IP>`:
+3. In this repo, replace the default domain name `snf-895798.vm.okeanos.grnet.gr` -> `<DNS>`:
 ```
-./patch_ip.sh IP
+./patch_ip.sh DNS
 ```
-(To revert the IP patch above, run: `./undo_patch_ip.sh`)
+(To revert the DNS patch above, run: `./undo_patch_ip.sh`)
+
+As its name suggests the same script works for replacement of IPs.
+Note that if you want to use an IP instead of a domain name, you will also need to update the certificate configuration.Specifically, you will need to update `server_ip.conf` and use `IP` instead of `DNS` in the subject alternate names (SAN) field.
+
+```bash
+[alt_names]
+IP.1 = 83.212.99.99
+```
 
 4. Run `./setup.sh` (it will need `sudo` access).
 
