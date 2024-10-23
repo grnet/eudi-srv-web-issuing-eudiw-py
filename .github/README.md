@@ -79,3 +79,9 @@ For more options:
 ```bash
 $ ./ebsi-agent.sh --help
 ```
+
+### Run service with docker
+
+```bash
+$ docker compose up
+```
