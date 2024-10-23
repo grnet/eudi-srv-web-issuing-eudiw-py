@@ -22,9 +22,16 @@ WORKDIR waltid-identity
 RUN ./gradlew clean build
 RUN alias waltid="./waltid-cli.sh"
 RUN alias waltid="./waltid-cli-development.sh"
-
 RUN apt-get install -y openjdk-17-jre-headless  # TODO: Transfer
 WORKDIR waltid-applications/waltid-cli
 RUN ./waltid-cli.sh
 
 
+# Setup ssi-lib
+WORKDIR ${HOMEDIR}
+COPY ./ssi-lib/commands /usr/local/sbin
+COPY ./ssi-lib ./ssi-lib
+WORKDIR ${HOMEDIR}/ssi-lib
+RUN rm -rf build/ dist/ ssi_lib.egg-info
+RUN python3 setup.py install
+WORKDIR ${HOMEDIR}

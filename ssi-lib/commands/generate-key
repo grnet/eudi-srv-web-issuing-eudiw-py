@@ -1,0 +1,71 @@
+#!/bin/bash
+
+usage_string="usage: 
+
+$ $(basename "$0") --export OUTFILE [OPTIONS]
+
+Generate key and export to file.
+
+Arguments:
+  --export OUTFILE                    File to export key after generation
+
+Options:
+  -a, --algo [Ed25519|Secp256k1|RSA]  Keygen algorithm. Default: Secp256k1
+
+Examples
+  $ $(basename "$0") --algo Secp256k1 --export tmp.json
+"
+
+usage() { echo -n "$usage_string" 1>&2; }
+
+set -e
+
+ALGO=Secp256k1
+OUTFILE=
+
+while [[ $# -gt 0 ]]
+do
+    arg="$1"
+    case $arg in
+        -a|--algo)
+            case "$2" in
+                Ed25519|Secp256k1|RSA)
+                    ALGO="$2"
+                    shift
+                    ;;
+                *)
+                    echo "[-] Unknown keygen algorithm: ${2}"
+                    usage
+                    exit 1
+            esac
+            shift
+            ;;
+        --export)
+            OUTFILE="$2"
+            shift
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "[-] Unknown option: ${arg}"
+            usage
+            exit 1
+    esac
+done
+
+
+if [ -z ${OUTFILE} ]; then
+    echo "[-] No export file provided"
+    usage && exit 1
+fi
+
+cd ${WALTDIR}
+
+./ssikit.sh key gen --algorithm ${ALGO} >/dev/null 2>&1
+
+get-key --export ${OUTFILE}
+
+exit 0

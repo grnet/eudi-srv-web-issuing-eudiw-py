@@ -1,0 +1,72 @@
+#!/bin/bash
+
+usage_string="usage: 
+
+$ $(basename "$0") --key ALIAS --export OUTFILE
+
+Generate DID and export to file.
+
+Arguments:
+  --key ALIAS           Specific key to use
+  --export OUTFILE      File to export DID after generation
+
+IMPORTANT: Currently only keys of type Secp256k1 are capable of signing ETH
+transactions. Consequently, DIDs generated over keys of another type cannot
+properly register to the EBSI, will not be resolved and thus cannot be
+effectively invovled in protocol operations.
+
+Examples
+  $ $(basename "$0") --key d7080431b17f4adea29e50181115d810 --export tmp.json
+"
+
+usage() { echo -n "$usage_string" 1>&2; }
+
+set -e
+
+KEY=
+OUTFILE=
+
+while [[ $# -gt 0 ]]
+do
+    arg="$1"
+    case $arg in
+        --key)
+            KEY="$2"
+            shift
+            shift
+            ;;
+        --export)
+            OUTFILE="$2"
+            shift
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "[-] Unknown option: ${arg}"
+            usage
+            exit 1
+    esac
+done
+
+if [ -z ${KEY} ]; then
+    echo "[-] No key provided"
+    usage && exit 1
+fi
+
+if [ -z ${OUTFILE} ]; then
+    echo "[-] No export file provided"
+    usage && exit 1
+fi
+
+cd ${WALTDIR}
+
+./ssikit.sh did create \
+    --did-method ebsi \
+    --key ${KEY} \
+    ${OUTFILE}
+    > /dev/null 2>&1
+
+exit 0

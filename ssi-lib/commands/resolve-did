@@ -1,0 +1,67 @@
+#!/bin/bash
+
+usage_string="usage: 
+
+$ $(basename "$0") --did ALIAS
+
+DID resolution. Returns 0 if resolved, 1 otherwise.
+
+Arguments:
+  -d, --did DID   DID to onboard
+
+Examples
+  $ $(basename "$0") --did zjmoeYH3t3FQn93qTqLUQ9j 
+"
+
+usage() { echo -ne "$usage_string" 1>&2; }
+
+set -e
+
+EBSI_PRFX="did:ebsi"
+DID=
+
+while [[ $# -gt 0 ]]
+do
+    arg="$1"
+    case $arg in
+        -d|--did)
+            if [[ "$2" =~ "$EBSI_PRFX".* ]]; then
+                DID="$2"
+            else
+                DID="$EBSI_PRFX:$2"       # Prepend did:ebsi:
+            fi
+            shift
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "[-] Unknown option: ${arg}"
+            usage
+            exit 1
+    esac
+done
+
+if [ -z ${DID} ]; then
+    echo '[-] No DID provided'
+    usage && exit 1
+fi
+
+cd ${WALTDIR}
+
+resp=$(./ssikit.sh did resolve --did ${DID} | tee /dev/tty)
+
+if echo $resp | grep -qi "not found" ; then
+    echo "DID not found"
+    exit 1
+fi
+
+if echo $resp | grep -qi "invalid: 400 Bad Request"; then
+    echo "Invalid DID"
+    exit 2
+fi
+
+echo "DID resolved"
+exit 0
