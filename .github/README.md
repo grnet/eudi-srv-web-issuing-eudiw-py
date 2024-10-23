@@ -49,3 +49,12 @@ Studio IDE, Android SDK, Android Debugging Bridge).
    and continue to generate a QR code for a credential.
 
 2. Scan the QR code with the Android app. When prompted, use the Form Country (FC).
+
+## Development
+
+Run issuer with [walt.id](https://github.com/walt-id/waltid-identity) using
+Docker.
+
+```bash
+./run-dev.sh
+```

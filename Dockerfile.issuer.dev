@@ -1,0 +1,38 @@
+FROM eudi-base-dev:local
+
+ENV TMPDIR=${HOMEDIR}/tmp
+ENV STORAGE=${HOMEDIR}/storage
+
+WORKDIR ${HOMEDIR}/app
+
+# Install requirements and app
+COPY ./app/requirements.txt ./requirements.txt
+RUN pip install -r requirements.txt
+COPY ./app .
+
+# Setup keys and certificates
+WORKDIR ${HOMEDIR}
+RUN mkdir -p /etc/eudiw/pid-issuer/privkey/
+RUN chmod +rx /etc/eudiw
+RUN chmod +rx /etc/eudiw/pid-issuer
+RUN chmod +rx /etc/eudiw/pid-issuer/privkey
+COPY ./api_docs ./api_docs
+COPY ./server_ip.conf ./server_ip.conf
+RUN unzip -o api_docs/test_tokens/DS-token/PID-DS-0002.zip -d /etc/eudiw/pid-issuer/privkey/
+RUN chmod +r /etc/eudiw/pid-issuer/privkey/*
+RUN gunzip -f -k api_docs/test_tokens/IACA-token/PIDIssuerCAUT01.pem.gz
+RUN mkdir -p /etc/eudiw/pid-issuer/cert/
+RUN chmod +rx /etc/eudiw/pid-issuer/cert/
+RUN cp api_docs/test_tokens/IACA-token/PIDIssuerCAUT01.pem /etc/eudiw/pid-issuer/cert/
+RUN openssl req -x509 -nodes -days 730 \
+  -newkey rsa:2048 \
+  -keyout key.pem \
+  -out cert.pem \
+  -config server_ip.conf
+
+
+# Run application server
+WORKDIR ${HOMEDIR}/app
+RUN export REQUESTS_CA_BUNDLE=$(realpath cert.pem)
+# CMD ["python3", "-m" , "flask", "run", "--host=0.0.0.0"]
+CMD ["flask", "--app" , "app", "run", "--cert=cert.pem", "--key=key.pem", "--host", "0.0.0.0", "--port", "7000"]
