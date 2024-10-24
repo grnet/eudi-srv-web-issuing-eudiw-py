@@ -2,7 +2,7 @@
 
 usage_string="usage: 
 
-$ $(basename "$0") --export FILENAME [OPTIONS]
+$ $(basename "$0") --storage FOLDER --export FILENAME [OPTIONS]
 
 Generate key and export to file. Overwrites existing files.
 
@@ -62,6 +62,11 @@ do
             exit 1
     esac
 done
+
+if [ -z ${STORAGE} ]; then
+    echo "[-] No storage provided"
+    usage && exit 1
+fi
 
 
 if [ -z ${FILENAME} ]; then

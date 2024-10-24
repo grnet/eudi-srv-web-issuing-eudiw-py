@@ -2,41 +2,46 @@
 
 usage_string="usage: 
 
-$ $(basename "$0") --key ALIAS --export OUTFILE
+$ $(basename "$0") --key KEYPATH --storage STORAGE --export FILENAME
 
 Generate DID and export to file.
 
 Arguments:
-  --key ALIAS           Specific key to use
-  --export OUTFILE      File to export DID after generation
-
-IMPORTANT: Currently only keys of type Secp256k1 are capable of signing ETH
-transactions. Consequently, DIDs generated over keys of another type cannot
-properly register to the EBSI, will not be resolved and thus cannot be
-effectively invovled in protocol operations.
+  --key KEYPATH         Private key to use
+  --storage FOLDER      Folder containing key file
+  --export FILENAME     File containing dumped key
 
 Examples
-  $ $(basename "$0") --key d7080431b17f4adea29e50181115d810 --export tmp.json
+  $ $(basename "$0") \
+      --key /home/user/storage/key.json \
+      --storage /home/user/storage \
+      --export did.json
 "
 
 usage() { echo -n "$usage_string" 1>&2; }
 
 set -e
 
-KEY=
-OUTFILE=
+KEYPATH=
+FILENAME=
+STORAGE=
 
 while [[ $# -gt 0 ]]
 do
     arg="$1"
     case $arg in
         --key)
-            KEY="$2"
+            KEYPATH="$2"
+            shift
+            shift
+            ;;
+        --storage)
+            STORAGE="$2"
             shift
             shift
             ;;
         --export)
-            OUTFILE="$2"
+            FILENAME="$2"
             shift
             shift
             ;;
@@ -51,22 +56,26 @@ do
     esac
 done
 
-if [ -z ${KEY} ]; then
+if [ -z ${KEYPATH} ]; then
     echo "[-] No key provided"
     usage && exit 1
 fi
 
-if [ -z ${OUTFILE} ]; then
+if [ -z ${STORAGE} ]; then
+    echo "[-] No storage provided"
+    usage && exit 1
+fi
+
+
+if [ -z ${FILENAME} ]; then
     echo "[-] No export file provided"
     usage && exit 1
 fi
 
-cd ${WALTDIR}
-
-./ssikit.sh did create \
-    --did-method ebsi \
-    --key ${KEY} \
-    ${OUTFILE}
+cd ${WALTDIR} && yes | ./waltid-cli.sh did create \
+    --key=${KEYPATH} \
+    --method=KEY \
+    --did-doc-output="${STORAGE}/${FILENAME}"
     > /dev/null 2>&1
 
 exit 0

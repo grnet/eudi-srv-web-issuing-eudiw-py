@@ -64,9 +64,9 @@ class SSI(object):
             code = 1
         return res, code
 
-    def _generate_did(self, key, outfile):
+    def _generate_did(self, keypath, storage, outfile):
         res, code = self._run_cmd([
-            'generate-did', '--key', key, '--export', outfile,
+            'generate-did', '--key', keypath, '--storage', storage, '--export', outfile
         ])
         return res, code
 
@@ -165,22 +165,13 @@ class SSI(object):
             jwks = json.load(f)
         return jwks
 
-    def generate_did(self, key, token, onboard=True, load_key=True):
-        if load_key:
-            # TODO: Investigate how necessary this step is
-            # with respect to EBSI onboarding
-            res, code = self._load_key(key)
-            if code != 0:
-                err = 'Could not load key: %s' % res
-                raise SSIGenerationError(err)
-        outfile = os.path.join(self.tmpdir, 'did.json')
-        res, code = self._generate_did(key, outfile)
-        if code != 0:
+    def generate_did(self, keypath, storage, outfile):
+        res, code = self._generate_did(keypath, storage, outfile)
+        if not code == 0:
             raise SSIGenerationError(res)
-        with open(outfile, 'r') as f:
-            out = json.load(f)
-        os.remove(outfile)
-        return out
+        with open(os.path.join(storage, outfile), 'r') as f:
+            did = json.load(f)
+        return did
 
     def register_did(self, alias, token):
         if not token:
