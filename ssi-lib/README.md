@@ -35,6 +35,12 @@ from ssi_lib import SSI
 ssi = SSI('/home/user/tmp')
 ```
 
+### Key generation
+
+```python
+jwks = ssi.generate_key("Ed25519", "/home/user/storage", "key.json")
+```
+
 ## Documentation
 
 ## Development

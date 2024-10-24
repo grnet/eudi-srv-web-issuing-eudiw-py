@@ -40,9 +40,9 @@ class SSI(object):
         code = rslt.returncode
         return (resp, code)
 
-    def _generate_key(self, algo, outfile):
+    def _generate_key(self, algorithm, storage, outfile):
         res, code = self._run_cmd([
-            'generate-key', '--algo', algo, '--export', outfile,
+            'generate-key', '--algorithm', algorithm, '--storage', storage, '--export', outfile,
         ])
         return res, code
 
@@ -157,15 +157,13 @@ class SSI(object):
     def extract_holder_from_vp(self, entry):
         return entry['holder']
 
-    def generate_key(self, algo):
-        outfile = os.path.join(self.tmpdir, 'jwk.json')
-        res, code = self._generate_key(algo, outfile)
-        if code != 0:
+    def generate_key(self, algorithm, storage, outfile):
+        res, code = self._generate_key(algorithm, storage, outfile)
+        if not code == 0:
             raise SSIGenerationError(res)
-        with open(outfile, 'r') as f:
-            out = json.load(f)
-        os.remove(outfile)
-        return out
+        with open(os.path.join(storage, outfile), 'r') as f:
+            jwks = json.load(f)
+        return jwks
 
     def generate_did(self, key, token, onboard=True, load_key=True):
         if load_key:
