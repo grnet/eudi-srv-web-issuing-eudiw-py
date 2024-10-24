@@ -72,10 +72,9 @@ if [ -z ${FILENAME} ]; then
     usage && exit 1
 fi
 
-cd ${WALTDIR} && yes | ./waltid-cli.sh did create \
+waltid-cli \
     --key=${KEYPATH} \
     --method=KEY \
     --did-doc-output="${STORAGE}/${FILENAME}"
-    > /dev/null 2>&1
 
 exit 0

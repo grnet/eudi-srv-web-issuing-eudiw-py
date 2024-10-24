@@ -29,7 +29,6 @@ RUN ./waltid-cli.sh
 
 # Setup ssi-lib
 WORKDIR ${HOMEDIR}
-COPY ./ssi-lib/commands /usr/local/sbin
 COPY ./ssi-lib ./ssi-lib
 WORKDIR ${HOMEDIR}/ssi-lib
 RUN rm -rf build/ dist/ ssi_lib.egg-info

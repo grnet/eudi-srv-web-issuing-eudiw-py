@@ -1,7 +1,12 @@
 import os
-from ssi_lib import SSI
+from ssi_lib import SSI as _SSI
+
+class SSI(_SSI):
+    pass
+
 
 ssi = SSI('/home/user/tmp') # TODO: Remove auxiliary tmp file
+
 
 storage = "/home/dev/storage"
 

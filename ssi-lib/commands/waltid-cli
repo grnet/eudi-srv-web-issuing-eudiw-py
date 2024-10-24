@@ -1,0 +1,3 @@
+#!/bin/bash
+
+cd ${WALTDIR} && yes | ./waltid-cli.sh "$@"
