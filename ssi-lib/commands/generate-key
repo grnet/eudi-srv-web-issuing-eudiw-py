@@ -75,7 +75,7 @@ if [ -z ${FILENAME} ]; then
 fi
 
 
-waltid-cli \
+waltid-cli key generate \
     --keyType=${ALGORITHM} \
     --output="${STORAGE}/${FILENAME}"
 

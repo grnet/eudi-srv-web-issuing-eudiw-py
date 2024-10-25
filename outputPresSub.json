@@ -1,0 +1,1 @@
+{"id":"sample-pd","definition_id":"sample-pd","descriptor_map":[{"format":"jwt_vp_json","path":"$","path_nested":{"format":"jwt_vc_json","path":"$.verifiableCredential[0]"}}]}

@@ -195,7 +195,7 @@ class SSI(object):
                                    outfile)
         if code != 0:
             raise SSIIssuanceError(res)
-        with open(outfile, 'r') as f:
+        with open(outfile, 'r') as f: 
             out = json.load(f)
         os.remove(outfile)
         return out
