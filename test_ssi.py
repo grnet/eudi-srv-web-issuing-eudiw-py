@@ -88,43 +88,54 @@ class SSI(_SSI):
         holder_did,
         holder_keypath,
         verifier_did,
-        vcfile,
+        pre_token,
         presentation_definition,
-        vpfile,
         presentation_submission_output,
         nonce=None
     ):
+        infile = "/home/dev/tmp" + "/credential.jwt"  # TODO
+        outfile = "/home/dev/tmp" + "/presentation.jwt"  # TODO
+
+        with open(infile, "w+") as f:
+            f.write(pre_token)
+
         res, code = self._create_presentation(
             holder_did,
             holder_keypath,
             verifier_did,
-            vcfile,
+            infile,
             presentation_definition,
-            vpfile,
+            outfile,
             presentation_submission_output,
             nonce=None
         )
         if not code == 0:
             raise SSIGenerationError(res)
 
-        with open(vpfile, "r") as f:
-            presentation = f.read()
+        with open(outfile, "r") as f:
+            token = f.read()
 
-        return presentation
+        presentation = decode_credential_token(token)
+        return presentation, token
 
 
     def verify_presentation(
         self,
         holder_did,
+        presentation_token,
         presentation_definition,
         presentation_submission_output,
-        vpfile,
     ):
+        infile = "/home/dev/tmp" + "/presentation.jwt"  # TODO
+
+        with open(infile, "w+") as f:
+            f.write(presentation_token)
+
         res, code = self._verify_presentation(
             holder_did,
             presentation_definition,
             presentation_submission_output,
-            vpfile,
+            infile,
         )
         if not code == 0:
             raise SSIVerificationError(res)
@@ -186,22 +197,23 @@ assert pre_credential["sub"] == holder_did_id
 assert pre_credential["vc"] == credential_content
 assert pre_credential == decode_credential_token(pre_token)
 
-presentation = ssi.create_presentation(
+pre_presentation, presentation_token = ssi.create_presentation(
     holder_did_id,
     holder_keypath,
     verifier_did_id,
-    "/home/dev/tmp/credential.signed.json", # TODO
+    pre_token,
     "/home/dev/app/presDef.json",           # TODO: Config
-    "/home/dev/app/outputVp.jwt",           # TODO: Config
     "/home/dev/app/outputPresSub.json"      # TODO: Config
 )
 
 presentation = ssi.verify_presentation(
     holder_did_id,
+    presentation_token,
     "/home/dev/app/presDef.json",           # TODO: Config
     "/home/dev/app/outputPresSub.json",     # TODO: Config
-    "/home/dev/app/outputVp.jwt",           # TODO: Config
 )
+
+assert presentation == pre_presentation
 
 assert presentation["aud"] == verifier_did_id
 assert presentation["iss"] == holder_did_id
