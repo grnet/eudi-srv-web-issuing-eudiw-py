@@ -8,14 +8,14 @@ from ssi_lib import SSIIssuanceError, SSIGenerationError, SSIVerificationError
 
 class SSI(_SSI):
 
-    def _issue_credential(self, keypath, holder_did, issuer_did, outfile):
+    def _issue_credential(self, keypath, holder_did, issuer_did, infile):
         # TODO: Improve script usage
         res, code = self._run_cmd([
             "issue-credential",
             "--key", keypath,
             "--issuer", issuer_did,
             "--holder", holder_did,
-            "--export", outfile,
+            "--export", infile,    # TDOD
         ])
         return res, code
 
@@ -62,15 +62,25 @@ class SSI(_SSI):
         return res, code
 
 
-    def issue_credential(self, keypath, holder_did, issuer_did, outfile):
-        res, code = self._issue_credential(keypath, holder_did, issuer_did, outfile)
+    def issue_credential(self, keypath, holder_did, issuer_did, content):
+        infile = "/home/dev/tmp" + "/credential.json"  # TODO
+        outfile = "/home/dev/tmp" + "/credential.signed.json"  # TODO
+
+        with open(infile, "w+") as f:
+            json.dump(content, f)
+
+        res, code = self._issue_credential(
+            keypath, holder_did, issuer_did, infile
+        )
         if not code == 0:
             raise SSIIssuanceError(res)
 
         with open(outfile, "r") as f:
-            credential = json.load(f)
+            token = f.read()
 
-        return credential
+        credential = decode_credential_token(token)
+
+        return credential, token
 
 
     def create_presentation(
@@ -146,26 +156,51 @@ verifier_keypath = os.path.join(storage, "verifier_key.json")
 verifier_did = ssi.generate_did(verifier_keypath, storage, "verifier_did.json")
 verifier_did_id = verifier_did["content"]["id"]
 
+def decode_credential_token(token):
+    return jwt.decode(
+        token, options={"verify_signature": False}
+    )
 
-credential = ssi.issue_credential(
-    issuer_keypath, holder_did_id, issuer_did_id, "/home/dev/app/claims.json",
+credential_content = {
+  "@context": [
+    "https://www.w3.org/ns/credentials/v2",
+    "https://www.w3.org/ns/credentials/examples/v2"
+  ],
+  "id": "http://university.example/credentials/58473",
+  "type": ["VerifiableCredential", "ExampleAlumniCredential"],
+  "issuer": "did:example:2g55q912ec3476eba2l9812ecbfe",
+  "validFrom": "2010-01-01T00:00:00Z",
+  "credentialSubject": {
+    "id": "did:example:ebfeb1f712ebc6f1c276e12ec21",
+    "alumniOf": {
+      "id": "did:example:c276e12ec21ebfeb1f712ebc6f1",
+      "name": "Example University"
+    }
+  }
+}
+pre_credential, pre_token = ssi.issue_credential(
+    issuer_keypath, holder_did_id, issuer_did_id, credential_content
 )
+assert pre_credential["iss"] == issuer_did_id
+assert pre_credential["sub"] == holder_did_id
+assert pre_credential["vc"] == credential_content
+assert pre_credential == decode_credential_token(pre_token)
 
 presentation = ssi.create_presentation(
     holder_did_id,
     holder_keypath,
     verifier_did_id,
-    "/home/dev/app/claims.signed.json",
-    "/home/dev/app/presDef.json",
-    "/home/dev/app/outputVp.jwt",
-    "/home/dev/app/outputPresSub.json"
+    "/home/dev/tmp/credential.signed.json", # TODO
+    "/home/dev/app/presDef.json",           # TODO: Config
+    "/home/dev/app/outputVp.jwt",           # TODO: Config
+    "/home/dev/app/outputPresSub.json"      # TODO: Config
 )
 
 presentation = ssi.verify_presentation(
     holder_did_id,
-    "/home/dev/app/presDef.json",
-    "/home/dev/app/outputPresSub.json",
-    "/home/dev/app/outputVp.jwt",
+    "/home/dev/app/presDef.json",           # TODO: Config
+    "/home/dev/app/outputPresSub.json",     # TODO: Config
+    "/home/dev/app/outputVp.jwt",           # TODO: Config
 )
 
 assert presentation["aud"] == verifier_did_id
@@ -173,9 +208,11 @@ assert presentation["iss"] == holder_did_id
 assert presentation["sub"] == holder_did_id
 
 token = presentation["vp"]["verifiableCredential"][0]    # could me more than one
-credential = decoded_token = jwt.decode(
-    token, options={"verify_signature": False}
-)
+credential = decode_credential_token(token)
+
+assert token == pre_token
+assert credential == pre_credential
 
 assert credential["iss"] == issuer_did_id
 assert credential["sub"] == holder_did_id
+
