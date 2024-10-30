@@ -61,6 +61,24 @@ class SSI(_SSI):
         return res, code
 
 
+    def _verify_credential(self, vcfile, schema=None, allowed_issuer=None):
+        command = ["waltid-cli", "vc", "verify"]
+        args = ["-p", "signature", vcfile]
+
+        if schema:
+            args = ["-p", "schema", f"--arg=schema={schema}"] + args
+
+        if allowed_issuer:
+            args = ["-p", "allowed-issuer", f"--arg=issuer={allowed_issuer}"] + args
+
+        # TODO: revoked_status_list goes here!
+
+        command = command + args
+        res, code = self._run_cmd(command)
+
+        return res, code
+
+
     def _create_presentation(
         self,
         holder_keypath,
@@ -114,7 +132,43 @@ class SSI(_SSI):
         token = self._read_token("credential.signed.json", clean=clean)
         credential = self._decode_token(token)
 
+        if clean:
+            os.remove(outfile)
+
         return credential, token
+
+
+    def verify_credential(
+        self,
+        token,
+        schema=None,
+        allowed_issuer=None,
+        clean=True
+    ):
+        vcfile = self._dump_token(token, "credential.signed.jwt")
+
+        res, code = self._verify_credential(
+            vcfile, schema=schema, allowed_issuer=allowed_issuer
+        )
+
+        if not code == 0:
+            raise SSIVerificationError(res)
+
+        if "ERROR" in res.upper():
+            raise SSIVerificationError(res)
+
+        if "FAIL" in res.upper():
+            raise SSIVerificationError(res)
+
+        if not "SUCCESS" in res.upper():
+            raise SSIVerificationError("Invalid credential")
+
+        credential = self._decode_token(token)
+
+        if clean:
+            os.remove(vcfile)
+
+        return credential
 
 
     def create_presentation(
@@ -175,7 +229,14 @@ class SSI(_SSI):
             presentation_submission_output,
             vpfile,
         )
+
         if not code == 0:
+            raise SSIVerificationError(res)
+
+        if "ERROR" in res.upper():
+            raise SSIVerificationError(res)
+
+        if "FAIL" in res.upper():
             raise SSIVerificationError(res)
 
         result = res.split("Overall: ")[1].split("\n")[0].upper()
@@ -235,6 +296,12 @@ assert pre_credential["iss"] == issuer_did_id
 assert pre_credential["sub"] == holder_did_id
 assert pre_credential["vc"] == credential_content
 assert pre_credential == ssi._decode_token(pre_token)
+
+verified = ssi.verify_credential(
+    pre_token,
+    allowed_issuer=issuer_did_id,
+)
+assert verified == pre_credential
 
 pre_presentation, presentation_token = ssi.create_presentation(
     holder_keypath,
