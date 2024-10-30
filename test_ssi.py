@@ -89,12 +89,12 @@ class SSI(_SSI):
         holder_keypath,
         verifier_did,
         pre_token,
-        presentation_definition,
-        presentation_submission_output,
         nonce=None
     ):
         infile = "/home/dev/tmp" + "/credential.jwt"  # TODO
         outfile = "/home/dev/tmp" + "/presentation.jwt"  # TODO
+        presentation_definition =  "/home/dev/config" + "/presentation-definition.json"
+        presentation_submission_output = "/home/dev/config" + "/presentation-submission-output.json"
 
         with open(infile, "w+") as f:
             f.write(pre_token)
@@ -123,10 +123,10 @@ class SSI(_SSI):
         self,
         holder_did,
         presentation_token,
-        presentation_definition,
-        presentation_submission_output,
     ):
         infile = "/home/dev/tmp" + "/presentation.jwt"  # TODO
+        presentation_definition =  "/home/dev/config" + "/presentation-definition.json"
+        presentation_submission_output = "/home/dev/config" + "/presentation-submission-output.json"
 
         with open(infile, "w+") as f:
             f.write(presentation_token)
@@ -202,15 +202,11 @@ pre_presentation, presentation_token = ssi.create_presentation(
     holder_keypath,
     verifier_did_id,
     pre_token,
-    "/home/dev/app/presDef.json",           # TODO: Config
-    "/home/dev/app/outputPresSub.json"      # TODO: Config
 )
 
 presentation = ssi.verify_presentation(
     holder_did_id,
     presentation_token,
-    "/home/dev/app/presDef.json",           # TODO: Config
-    "/home/dev/app/outputPresSub.json",     # TODO: Config
 )
 
 assert presentation == pre_presentation

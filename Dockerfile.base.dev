@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y \
 RUN export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 
 
-# Setup waltid
+# Setup waltid-cli
 RUN git clone https://github.com/walt-id/waltid-identity.git
 WORKDIR waltid-identity
 RUN ./gradlew clean build
@@ -28,9 +28,12 @@ RUN ./waltid-cli.sh
 
 
 # Setup ssi-lib
+ENV CONFDIR=/home/${USERNAME}/config
 WORKDIR ${HOMEDIR}
 COPY ./ssi-lib ./ssi-lib
 WORKDIR ${HOMEDIR}/ssi-lib
 RUN rm -rf build/ dist/ ssi_lib.egg-info
 RUN python3 setup.py install
 WORKDIR ${HOMEDIR}
+RUN rm -rf ./ssi-lib
+COPY ./ssi-lib/config_files ${CONFDIR}
