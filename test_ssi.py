@@ -8,6 +8,47 @@ from ssi_lib import SSIIssuanceError, SSIGenerationError, SSIVerificationError
 
 class SSI(_SSI):
 
+    def __init__(self, confdir, tmpdir):
+        self.confdir = confdir
+        super().__init__(tmpdir)
+
+
+    def _dump_json(self, data, filename):
+        infile = os.path.join(self.tmpdir, filename)
+
+        with open(infile, "w+") as f:
+            json.dump(data, f)
+
+        return infile
+
+
+    def _dump_token(self, token, filename):
+        infile = os.path.join(self.tmpdir, filename)
+
+        with open(infile, "w+") as f:
+            f.write(token)
+
+        return infile
+
+
+    def _read_token(self, filename, clean=False):
+        infile = os.path.join(self.tmpdir, filename)
+
+        with open(infile, "r") as f:
+            token = f.read()
+
+        if clean:
+            os.remove(infile)
+
+        return token
+
+
+    def _decode_token(self, token):
+        return jwt.decode(
+            token, options={"verify_signature": False}
+        )
+
+
     def _issue_credential(self, keypath, holder_did, issuer_did, infile):
         # TODO: Improve script usage
         res, code = self._run_cmd([
@@ -62,12 +103,8 @@ class SSI(_SSI):
         return res, code
 
 
-    def issue_credential(self, keypath, holder_did, issuer_did, content):
-        infile = "/home/dev/tmp" + "/credential.json"  # TODO
-        outfile = "/home/dev/tmp" + "/credential.signed.json"  # TODO
-
-        with open(infile, "w+") as f:
-            json.dump(content, f)
+    def issue_credential(self, keypath, holder_did, issuer_did, content, clean=True):
+        infile = self._dump_json(content, "credential.json")
 
         res, code = self._issue_credential(
             keypath, holder_did, issuer_did, infile
@@ -75,10 +112,8 @@ class SSI(_SSI):
         if not code == 0:
             raise SSIIssuanceError(res)
 
-        with open(outfile, "r") as f:
-            token = f.read()
-
-        credential = decode_credential_token(token)
+        token = self._read_token("credential.signed.json", clean=clean)
+        credential = self._decode_token(token)
 
         return credential, token
 
@@ -88,69 +123,78 @@ class SSI(_SSI):
         holder_did,
         holder_keypath,
         verifier_did,
-        pre_token,
-        nonce=None
+        credential_token,
+        nonce=None,
+        clean=True,
     ):
-        infile = "/home/dev/tmp" + "/credential.jwt"  # TODO
-        outfile = "/home/dev/tmp" + "/presentation.jwt"  # TODO
-        presentation_definition =  "/home/dev/config" + "/presentation-definition.json"
-        presentation_submission_output = "/home/dev/config" + "/presentation-submission-output.json"
+        vcfile = self._dump_token(credential_token, "credential.jwt")
 
-        with open(infile, "w+") as f:
-            f.write(pre_token)
+        presentation_definition = os.path.join(
+            self.confdir, "presentation-definition.json"
+        )
+        presentation_submission_output = os.path.join(
+            self.confdir, "presentation-submission-output.json"
+        )
 
+        vpfile = os.path.join(self.tmpdir, "presentation.jwt")
         res, code = self._create_presentation(
             holder_did,
             holder_keypath,
             verifier_did,
-            infile,
+            vcfile,
             presentation_definition,
-            outfile,
+            vpfile,
             presentation_submission_output,
             nonce=None
         )
         if not code == 0:
             raise SSIGenerationError(res)
 
-        with open(outfile, "r") as f:
-            token = f.read()
+        token = self._read_token("presentation.jwt")
+        presentation = self._decode_token(token)
 
-        presentation = decode_credential_token(token)
+        if clean:
+            os.remove(vcfile)
+            os.remove(vpfile)
+
         return presentation, token
 
 
-    def verify_presentation(
-        self,
-        holder_did,
-        presentation_token,
-    ):
-        infile = "/home/dev/tmp" + "/presentation.jwt"  # TODO
-        presentation_definition =  "/home/dev/config" + "/presentation-definition.json"
-        presentation_submission_output = "/home/dev/config" + "/presentation-submission-output.json"
+    def verify_presentation(self, holder_did, token, clean=True):
+        vpfile = self._dump_token(token, "presentation.jwt")
 
-        with open(infile, "w+") as f:
-            f.write(presentation_token)
+        presentation_definition = os.path.join(
+            self.confdir, "presentation-definition.json"
+        )
+        presentation_submission_output = os.path.join(
+            self.confdir, "presentation-submission-output.json"
+        )
 
         res, code = self._verify_presentation(
             holder_did,
             presentation_definition,
             presentation_submission_output,
-            infile,
+            vpfile,
         )
         if not code == 0:
             raise SSIVerificationError(res)
 
+        # TODO: More robust parsing
         pattern = r"Success\s*\(([^()]*)\)"
         ans = res.split("\n")[0]
         matches = re.findall(pattern, ans)
         presentation = json.loads(matches[0])
+
+        if clean:
+            os.remove(vpfile)
+
         return presentation
 
 
-ssi = SSI("/home/user/tmp")
-
-
-storage = "/home/dev/storage"
+tmpdir = os.getenv("TMPDIR", "/home/dev/tmp")
+confdir = os.getenv("CONFDIR", "/home/dev/config")
+storage = "/home/dev/storage"   # TODO
+ssi = SSI(confdir, tmpdir)
 
 holder_key = ssi.generate_key("Ed25519", storage, "holder_key.json")
 holder_keypath = os.path.join(storage, "holder_key.json")
@@ -167,10 +211,6 @@ verifier_keypath = os.path.join(storage, "verifier_key.json")
 verifier_did = ssi.generate_did(verifier_keypath, storage, "verifier_did.json")
 verifier_did_id = verifier_did["content"]["id"]
 
-def decode_credential_token(token):
-    return jwt.decode(
-        token, options={"verify_signature": False}
-    )
 
 credential_content = {
   "@context": [
@@ -195,7 +235,7 @@ pre_credential, pre_token = ssi.issue_credential(
 assert pre_credential["iss"] == issuer_did_id
 assert pre_credential["sub"] == holder_did_id
 assert pre_credential["vc"] == credential_content
-assert pre_credential == decode_credential_token(pre_token)
+assert pre_credential == ssi._decode_token(pre_token)
 
 pre_presentation, presentation_token = ssi.create_presentation(
     holder_did_id,
@@ -216,7 +256,7 @@ assert presentation["iss"] == holder_did_id
 assert presentation["sub"] == holder_did_id
 
 token = presentation["vp"]["verifiableCredential"][0]    # could me more than one
-credential = decode_credential_token(token)
+credential = ssi._decode_token(token)
 
 assert token == pre_token
 assert credential == pre_credential
