@@ -1,12 +1,5 @@
 FROM eudi-base-dev:local
 
-# ssi-lib pawameters
-ENV TMPDIR=${HOMEDIR}/tmp
-ENV STORAGE=${HOMEDIR}/storage
-RUN mkdir -p ${TMPDIR}
-RUN mkdir -p ${STORAGE}
-ENV WALTDIR=${HOMEDIR}/waltid-identity/waltid-applications/waltid-cli
-
 WORKDIR ${HOMEDIR}/app
 
 # Install requirements and app

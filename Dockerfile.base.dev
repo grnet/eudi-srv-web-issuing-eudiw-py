@@ -36,4 +36,13 @@ RUN rm -rf build/ dist/ ssi_lib.egg-info
 RUN python3 setup.py install
 WORKDIR ${HOMEDIR}
 RUN rm -rf ./ssi-lib
+
+
+# ssi-lib related folders
 COPY ./ssi-lib/config_files ${CONFDIR}
+ENV VAULT=${HOMEDIR}/vault
+ENV TMPDIR=${HOMEDIR}/tmp
+RUN mkdir -p ${VAULT}
+RUN mkdir -p ${TMPDIR}
+# TODO: Consider removing this
+ENV WALTDIR=${HOMEDIR}/waltid-identity/waltid-applications/waltid-cli

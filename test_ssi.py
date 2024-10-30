@@ -3,14 +3,29 @@ import json
 import re
 import jwt
 
+import os
+import json
+import subprocess
+
 from ssi_lib import SSI as _SSI
 from ssi_lib import SSIIssuanceError, SSIGenerationError, SSIVerificationError
 
 class SSI(_SSI):
 
-    def __init__(self, confdir, tmpdir):
+    def __init__(self, vault, confdir, tmpdir):
+        self.vault = vault
         self.confdir = confdir
         super().__init__(tmpdir)
+
+
+    @staticmethod
+    def _run_cmd(command):
+        result = subprocess.run(command, stdout=subprocess.PIPE)
+
+        res = result.stdout.decode("utf-8").rstrip("\n")
+        code = result.returncode
+
+        return res, code
 
 
     def _dump_json(self, data, filename):
@@ -49,15 +64,37 @@ class SSI(_SSI):
         )
 
 
-    def _issue_credential(self, issuer_keypath, issuer_did, holder_did, outfile):
+    def _generate_key(self, algorithm, outfile):
+        res, code = self._run_cmd([
+            "waltid-cli", "key", "generate",
+            "--keyType", algorithm,
+            "--output", outfile,
+        ])
+
+        return res, code
+
+
+    # TODO: Add EBSI option
+    def _generate_did(self, keypath, outfile):
+        res, code = self._run_cmd([
+            "waltid-cli", "did", "create",
+            "--key", keypath,
+            "--did-doc-output", outfile,
+        ])
+
+        return res, code
+
+
+    def _issue_credential(self, issuer_key, issuer_did, holder_did, outfile):
         res, code = self._run_cmd([
             "waltid-cli", "vc", "sign",
-            "--key", issuer_keypath,
+            "--key", issuer_key,
             "--issuer", issuer_did,
             "--subject", holder_did,
             "--overwrite",
             outfile
         ])
+
         return res, code
 
 
@@ -81,10 +118,10 @@ class SSI(_SSI):
 
     def _create_presentation(
         self,
-        holder_keypath,
+        holder_key,
         holder_did,
         verifier_did,
-        vcfile,
+        vcfile,         # TODO: Allow more credentials
         vpfile,
         presentation_definition,
         presentation_submission_output,
@@ -92,7 +129,7 @@ class SSI(_SSI):
     ):
         res, code = self._run_cmd([
             "waltid-cli", "vp", "create",
-            "-hk", holder_keypath,
+            "-hk", holder_key,
             "-hd", holder_did,
             "-vd", verifier_did,
             "-vc", vcfile,
@@ -120,11 +157,39 @@ class SSI(_SSI):
         return res, code
 
 
-    def issue_credential(self, issuer_keypath, issuer_did, holder_did, content, clean=True):
+    def generate_key(self, algorithm, filename):
+        outfile = os.path.join(self.vault, filename)
+
+        res, code = self._generate_key(algorithm, outfile)
+
+        if not code == 0:
+            raise SSIGenerationError(res)
+
+        return outfile
+
+
+    def generate_did(self, keypath, filename, get_full=False):
+        outfile = os.path.join(self.vault, filename)
+
+        res, code = self._generate_did(keypath, outfile)
+
+        if not code == 0:
+            raise SSIGenerationError(res)
+
+        with open(os.path.join(outfile), "r") as f:
+            did_obj = json.load(f)
+
+        if get_full:
+            return did_obj
+
+        return did_obj["content"]["id"]
+
+
+    def issue_credential(self, issuer_key, issuer_did, holder_did, content, clean=True):
         outfile = self._dump_json(content, "credential.json")
 
         res, code = self._issue_credential(
-            issuer_keypath, issuer_did, holder_did, outfile
+            issuer_key, issuer_did, holder_did, outfile
         )
         if not code == 0:
             raise SSIIssuanceError(res)
@@ -173,7 +238,7 @@ class SSI(_SSI):
 
     def create_presentation(
         self,
-        holder_keypath,
+        holder_key,
         holder_did,
         verifier_did,
         credential_token,
@@ -191,7 +256,7 @@ class SSI(_SSI):
 
         vpfile = os.path.join(self.tmpdir, "presentation.jwt")
         res, code = self._create_presentation(
-            holder_keypath,
+            holder_key,
             holder_did,
             verifier_did,
             vcfile,
@@ -251,25 +316,21 @@ class SSI(_SSI):
         return presentation
 
 
-tmpdir = os.getenv("TMPDIR", "/home/dev/tmp")
+vault = os.getenv("VAULT", "home/dev/vault")
 confdir = os.getenv("CONFDIR", "/home/dev/config")
-storage = "/home/dev/storage"   # TODO
-ssi = SSI(confdir, tmpdir)
+tmpdir = os.getenv("TMPDIR", "/home/dev/tmp")
 
-holder_key = ssi.generate_key("Ed25519", storage, "holder_key.json")
-holder_keypath = os.path.join(storage, "holder_key.json")
-holder_did = ssi.generate_did(holder_keypath, storage, "holder_did.json")
-holder_did_id = holder_did["content"]["id"]
+ssi = SSI(vault, confdir, tmpdir)
 
-issuer_key = ssi.generate_key("Ed25519", storage, "issuer_key.json")
-issuer_keypath = os.path.join(storage, "issuer_key.json")
-issuer_did = ssi.generate_did(issuer_keypath, storage, "issuer_did.json")
-issuer_did_id = issuer_did["content"]["id"]
 
-verifier_key = ssi.generate_key("Ed25519", storage, "verifier_key.json")
-verifier_keypath = os.path.join(storage, "verifier_key.json")
-verifier_did = ssi.generate_did(verifier_keypath, storage, "verifier_did.json")
-verifier_did_id = verifier_did["content"]["id"]
+holder_key = ssi.generate_key("Ed25519", "holder_key.json")
+holder_did = ssi.generate_did(holder_key, "holder_did.json")
+
+issuer_key = ssi.generate_key("Ed25519", "issuer_key.json")
+issuer_did = ssi.generate_did(issuer_key, "issuer_did.json")
+
+verifier_key = ssi.generate_key("Ed25519", "verifier_key.json")
+verifier_did = ssi.generate_did(verifier_key, "verifier_did.json")
 
 
 credential_content = {
@@ -289,44 +350,41 @@ credential_content = {
     }
   }
 }
-pre_credential, pre_token = ssi.issue_credential(
-    issuer_keypath, issuer_did_id, holder_did_id, credential_content
+
+
+# Credential issuance
+credential, credential_token = ssi.issue_credential(
+    issuer_key, issuer_did, holder_did, credential_content
 )
-assert pre_credential["iss"] == issuer_did_id
-assert pre_credential["sub"] == holder_did_id
-assert pre_credential["vc"] == credential_content
-assert pre_credential == ssi._decode_token(pre_token)
+assert credential["iss"] == issuer_did
+assert credential["sub"] == holder_did
+assert credential["vc"] == credential_content
 
-verified = ssi.verify_credential(
-    pre_token,
-    allowed_issuer=issuer_did_id,
+
+# Credential verification
+retrieved = ssi.verify_credential(credential_token,allowed_issuer=issuer_did)
+assert retrieved == credential
+
+
+# Presentation creation
+presentation, presentation_token = ssi.create_presentation(
+    holder_key, holder_did, verifier_did, credential_token,
 )
-assert verified == pre_credential
+assert presentation["aud"] == verifier_did
+assert presentation["iss"] == holder_did
+assert presentation["sub"] == holder_did
 
-pre_presentation, presentation_token = ssi.create_presentation(
-    holder_keypath,
-    holder_did_id,
-    verifier_did_id,
-    pre_token,
-)
 
-presentation = ssi.verify_presentation(
-    holder_did_id,
-    presentation_token,
-)
+# Presentation verification
+retrieved_presentation = ssi.verify_presentation(holder_did, presentation_token)
+assert retrieved_presentation == presentation
 
-assert presentation == pre_presentation
 
-assert presentation["aud"] == verifier_did_id
-assert presentation["iss"] == holder_did_id
-assert presentation["sub"] == holder_did_id
-
-token = presentation["vp"]["verifiableCredential"][0]    # could me more than one
-credential = ssi._decode_token(token)
-
-assert token == pre_token
-assert credential == pre_credential
-
-assert credential["iss"] == issuer_did_id
-assert credential["sub"] == holder_did_id
+# Overall compatibility checks
+embedded_token = presentation["vp"]["verifiableCredential"][0]    # could me more than one
+assert embedded_token == credential_token
+embedded_credential = ssi._decode_token(embedded_token)
+assert embedded_credential == credential
+assert embedded_credential["iss"] == issuer_did
+assert embedded_credential["sub"] == holder_did
 
