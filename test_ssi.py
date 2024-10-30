@@ -49,38 +49,37 @@ class SSI(_SSI):
         )
 
 
-    def _issue_credential(self, keypath, holder_did, issuer_did, infile):
-        # TODO: Improve script usage
+    def _issue_credential(self, issuer_keypath, issuer_did, holder_did, outfile):
         res, code = self._run_cmd([
-            "issue-credential",
-            "--key", keypath,
+            "waltid-cli", "vc", "sign",
+            "--key", issuer_keypath,
             "--issuer", issuer_did,
-            "--holder", holder_did,
-            "--export", infile,    # TDOD
+            "--subject", holder_did,
+            "--overwrite",
+            outfile
         ])
         return res, code
 
 
     def _create_presentation(
         self,
-        holder_did,
         holder_keypath,
+        holder_did,
         verifier_did,
         vcfile,
-        presentation_definition,
         vpfile,
+        presentation_definition,
         presentation_submission_output,
         nonce=None
     ):
-        # TODO: Improve script usage
         res, code = self._run_cmd([
-            "present-credentials",
-            "-hd", holder_did,
+            "waltid-cli", "vp", "create",
             "-hk", holder_keypath,
+            "-hd", holder_did,
             "-vd", verifier_did,
             "-vc", vcfile,
-            "-pd", presentation_definition,
             "-vp", vpfile,
+            "-pd", presentation_definition,
             "-ps", presentation_submission_output,
         ])
         return res, code
@@ -103,11 +102,11 @@ class SSI(_SSI):
         return res, code
 
 
-    def issue_credential(self, keypath, holder_did, issuer_did, content, clean=True):
-        infile = self._dump_json(content, "credential.json")
+    def issue_credential(self, issuer_keypath, issuer_did, holder_did, content, clean=True):
+        outfile = self._dump_json(content, "credential.json")
 
         res, code = self._issue_credential(
-            keypath, holder_did, issuer_did, infile
+            issuer_keypath, issuer_did, holder_did, outfile
         )
         if not code == 0:
             raise SSIIssuanceError(res)
@@ -120,8 +119,8 @@ class SSI(_SSI):
 
     def create_presentation(
         self,
-        holder_did,
         holder_keypath,
+        holder_did,
         verifier_did,
         credential_token,
         nonce=None,
@@ -138,12 +137,12 @@ class SSI(_SSI):
 
         vpfile = os.path.join(self.tmpdir, "presentation.jwt")
         res, code = self._create_presentation(
-            holder_did,
             holder_keypath,
+            holder_did,
             verifier_did,
             vcfile,
-            presentation_definition,
             vpfile,
+            presentation_definition,
             presentation_submission_output,
             nonce=None
         )
@@ -230,7 +229,7 @@ credential_content = {
   }
 }
 pre_credential, pre_token = ssi.issue_credential(
-    issuer_keypath, holder_did_id, issuer_did_id, credential_content
+    issuer_keypath, issuer_did_id, holder_did_id, credential_content
 )
 assert pre_credential["iss"] == issuer_did_id
 assert pre_credential["sub"] == holder_did_id
@@ -238,8 +237,8 @@ assert pre_credential["vc"] == credential_content
 assert pre_credential == ssi._decode_token(pre_token)
 
 pre_presentation, presentation_token = ssi.create_presentation(
-    holder_did_id,
     holder_keypath,
+    holder_did_id,
     verifier_did_id,
     pre_token,
 )
