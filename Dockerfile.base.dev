@@ -32,6 +32,7 @@ ENV CONFDIR=/home/${USERNAME}/config
 WORKDIR ${HOMEDIR}
 COPY ./ssi-lib ./ssi-lib
 WORKDIR ${HOMEDIR}/ssi-lib
+RUN pip install -r requirements.txt
 RUN rm -rf build/ dist/ ssi_lib.egg-info
 RUN python3 setup.py install
 WORKDIR ${HOMEDIR}

@@ -11,4 +11,4 @@ services:
       PORT: 7000
     volumes:
       - ./.:/home/dev/app
-      - ./ssi-lib/commands:/usr/local/sbin
+      - ./ssi-lib/scripts:/usr/local/sbin

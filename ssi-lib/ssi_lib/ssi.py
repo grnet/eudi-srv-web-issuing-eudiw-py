@@ -1,8 +1,8 @@
 import os
-import json
 import subprocess
-from abc import ABCMeta, abstractmethod
-from .types import Vc, Template
+import json
+
+import jwt
 
 
 class SSIGenerationError(Exception):
@@ -25,199 +25,308 @@ class SSIVerificationError(Exception):
     pass
 
 
-class SSI(object):
+# TODO: Add DID resolution functionality
+class SSI:
 
-    def __init__(self, tmpdir):
+    def __init__(self, vault, confdir, tmpdir):
+        self.vault = vault
+        self.confdir = confdir
         self.tmpdir = tmpdir
-        self.commands = {
-            Vc.DIPLOMA: 'issue-diploma',
-        }
+
 
     @staticmethod
-    def _run_cmd(args):
-        rslt = subprocess.run(args, stdout=subprocess.PIPE)
-        resp = rslt.stdout.decode('utf-8').rstrip('\n')
-        code = rslt.returncode
-        return (resp, code)
+    def _run_cmd(command):
+        result = subprocess.run(command, stdout=subprocess.PIPE)
 
-    def _generate_key(self, algorithm, storage, outfile):
-        res, code = self._run_cmd([
-            'generate-key', '--algorithm', algorithm, '--storage', storage, '--export', outfile,
-        ])
+        res = result.stdout.decode("utf-8").rstrip("\n")
+        code = result.returncode
+
         return res, code
 
-    # @abstractmethod
-    # def _fetch_key(self, *args):
-    #     """
-    #     """
 
-    def _load_key(self, *args):
-        outfile = os.path.join(self.tmpdir, 'jwk.json')
-        entry = self._fetch_key(*args)
-        if entry:
-            with open(outfile, 'w+') as f:
-                json.dump(entry, f)
-            res, code = self._run_cmd(['load-key', '--file', outfile, ])
-            os.remove(outfile)
-        else:
-            res = 'No key found'
-            code = 1
-        return res, code
+    def _dump_json(self, data, filename):
+        infile = os.path.join(self.tmpdir, filename)
 
-    def _generate_did(self, keypath, storage, outfile):
-        res, code = self._run_cmd([
-            'generate-did', '--key', keypath, '--storage', storage, '--export', outfile
-        ])
-        return res, code
+        with open(infile, "w+") as f:
+            json.dump(data, f)
 
-    def _register_did(self, alias, token):
-        token_file = os.path.join(self.tmpdir, 'bearer-token.txt')
-        with open(token_file, 'w+') as f:
+        return infile
+
+
+    def _dump_token(self, token, filename):
+        infile = os.path.join(self.tmpdir, filename)
+
+        with open(infile, "w+") as f:
             f.write(token)
-        res, code = self._run_cmd(['register-did', '--did', alias,
-                                   '--token', token_file, '--resolve',
-                                   ])
-        os.remove(token_file)
-        return res, code
 
-    def _resolve_did(self, alias):
-        res, code = self._run_cmd(['resolve-did', '--did', alias, ])
-        return res, code
+        return infile
 
-    def _resolve_template(self, vc_type):
-        try:
-            template = getattr(Template, vc_type)
-        except AttributeError:
-            err = 'Requested credential type does not exist: %s' % vc_type
-            raise AttributeError(err)
-        return template
 
-    def _validate_vc_content(self, vc_type, content):
-        template = self._resolve_template(vc_type)
-        return template.keys() == content.keys()
+    def _read_token(self, filename, clean=False):
+        infile = os.path.join(self.tmpdir, filename)
 
-    def _issue_vc(self, holder, issuer, vc_type, content, outfile):
+        with open(infile, "r") as f:
+            token = f.read()
+
+        if clean:
+            os.remove(infile)
+
+        return token
+
+
+    def _decode_token(self, token):
+        return jwt.decode(
+            token, options={"verify_signature": False}
+        )
+
+
+    def _generate_key(self, algorithm, outfile):
         res, code = self._run_cmd([
-            self.commands[vc_type],
-            '--holder', holder,
-            '--issuer', issuer,
-            '--export', outfile,
-            *content.values(),
+            "waltid-cli", "key", "generate",
+            "--keyType", algorithm,
+            "--output", outfile,
+        ])
+
+        return res, code
+
+
+    # TODO: Add EBSI option
+    def _generate_did(self, keypath, outfile):
+        res, code = self._run_cmd([
+            "waltid-cli", "did", "create",
+            "--key", keypath,
+            "--did-doc-output", outfile,
+        ])
+
+        return res, code
+
+
+    def _issue_credential(self, issuer_key, issuer_did, holder_did, outfile):
+        res, code = self._run_cmd([
+            "waltid-cli", "vc", "sign",
+            "--key", issuer_key,
+            "--issuer", issuer_did,
+            "--subject", holder_did,
+            "--overwrite",
+            outfile
+        ])
+
+        return res, code
+
+
+    def _verify_credential(self, vcfile, schema=None, allowed_issuer=None):
+        command = ["waltid-cli", "vc", "verify"]
+        args = ["-p", "signature", vcfile]
+
+        if schema:
+            args = ["-p", "schema", f"--arg=schema={schema}"] + args
+
+        if allowed_issuer:
+            args = ["-p", "allowed-issuer", f"--arg=issuer={allowed_issuer}"] + args
+
+        # TODO: revoked_status_list goes here!
+
+        command = command + args
+        res, code = self._run_cmd(command)
+
+        return res, code
+
+
+    def _create_presentation(
+        self,
+        holder_key,
+        holder_did,
+        verifier_did,
+        vcfile,         # TODO: Allow more credentials
+        vpfile,
+        presentation_definition,
+        presentation_submission_output,
+        nonce=None
+    ):
+        res, code = self._run_cmd([
+            "waltid-cli", "vp", "create",
+            "-hk", holder_key,
+            "-hd", holder_did,
+            "-vd", verifier_did,
+            "-vc", vcfile,
+            "-vp", vpfile,
+            "-pd", presentation_definition,
+            "-ps", presentation_submission_output,
         ])
         return res, code
 
-    def _present_credentials(self, holder, credentials):
-        args = ['present-credentials', '--holder', holder, ]
-        for credential in credentials:
-            args += ['-c', credential, ]
-        res, code = self._run_cmd(args)
-        return res, code
 
-    def _extract_presentation_filename(self, buff):
-        sep = 'Verifiable presentation was saved to file: '
-        if not sep in buff:
-            return None
-        out = buff.split(sep)[-1].replace('"', '')
-        return out
-
-    def _verify_presentation(self, presentation):
-        tmpfile = os.path.join(self.tmpdir, 'vp.json')
-        with open(tmpfile, 'w+') as f:
-            json.dump(presentation, f)
+    def _verify_presentation(
+        self,
+        holder_did,
+        presentation_definition,
+        presentation_submission_output,
+        vpfile,
+    ):
         res, code = self._run_cmd([
-            'verify-credentials', '--presentation', tmpfile, ])
-        os.remove(tmpfile)
+            "waltid-cli", "vp", "verify",
+            "-hd", holder_did,
+            "-pd", presentation_definition,
+            "-ps", presentation_submission_output,
+            "-vp", vpfile,
+        ])
         return res, code
 
-    def _parse_verification_results(self, buff):
-        aux = buff.split('Results: ', 1)[-1].replace(':', '').split(' ')
-        out = {}
-        for i in range(0, len(aux), 2):
-            out[aux[i]] = {'true': True, 'false': False}[aux[i + 1]]
-        return out
 
-    def extract_alias_from_key(self, entry):
-        return entry['kid']
+    def generate_key(self, algorithm, filename):
+        outfile = os.path.join(self.vault, filename)
 
-    def extract_alias_from_did(self, entry):
-        return entry['id']
+        res, code = self._generate_key(algorithm, outfile)
 
-    def extract_key_from_did(self, entry):
-        return entry['verificationMethod'][0]['publicKeyJwk']['kid']
-
-    def extract_alias_from_vc(self, entry):
-        return entry['id']
-
-    def extract_holder_from_vc(self, entry):
-        return entry['credentialSubject']['id']
-
-    def extract_alias_from_vp(self, entry):
-        return entry['id']
-
-    def extract_holder_from_vp(self, entry):
-        return entry['holder']
-
-    def generate_key(self, algorithm, storage, outfile):
-        res, code = self._generate_key(algorithm, storage, outfile)
         if not code == 0:
             raise SSIGenerationError(res)
-        with open(os.path.join(storage, outfile), 'r') as f:
-            jwks = json.load(f)
-        return jwks
 
-    def generate_did(self, keypath, storage, outfile):
-        res, code = self._generate_did(keypath, storage, outfile)
+        return outfile
+
+
+    def generate_did(self, keypath, filename, get_full=False):
+        outfile = os.path.join(self.vault, filename)
+
+        res, code = self._generate_did(keypath, outfile)
+
         if not code == 0:
             raise SSIGenerationError(res)
-        with open(os.path.join(storage, outfile), 'r') as f:
-            did = json.load(f)
-        return did
 
-    def register_did(self, alias, token):
-        if not token:
-            err = 'No token provided'
-            raise SSIRegistrationError(err)
-        res, code = self._register_did(alias, token)
-        if code != 0:
-            raise SSIRegistrationError(res)
+        with open(os.path.join(outfile), "r") as f:
+            did_obj = json.load(f)
 
-    def resolve_did(self, alias):
-        res, code = self._resolve_did(alias)
-        if code != 0:
-            raise SSIResolutionError(res)
+        if get_full:
+            return did_obj
 
-    def issue_credential(self, holder, issuer, vc_type, content):
-        if not self._validate_vc_content(vc_type, content):
-            err = 'Invalid credential content provided: %s' % err
-            raise SSIIssuanceError(err)
-        outfile = os.path.join(self.tmpdir, 'vc.json')
-        res, code = self._issue_vc(holder, issuer, vc_type, content,
-                                   outfile)
-        if code != 0:
+        return did_obj["content"]["id"]
+
+
+    def issue_credential(self, issuer_key, issuer_did, holder_did, content, clean=True):
+        outfile = self._dump_json(content, "credential.json")
+
+        res, code = self._issue_credential(
+            issuer_key, issuer_did, holder_did, outfile
+        )
+        if not code == 0:
             raise SSIIssuanceError(res)
-        with open(outfile, 'r') as f: 
-            out = json.load(f)
-        os.remove(outfile)
-        return out
 
-    def generate_presentation(self, holder, credentials, waltdir):
-        res, code = self._present_credentials(holder, credentials)
-        if code != 0:
-            raise SSIGenerationError(res)
-        filename = self._extract_presentation_filename(res)
-        if not filename:
-            raise SSIGenerationError(res)
-        outfile = os.path.join(waltdir, filename)
-        with open(outfile, 'r') as f:
-            out = json.load(f)
-        os.remove(outfile)
-        for tmpfile in credentials:
-            os.remove(tmpfile)
-        return out
+        token = self._read_token("credential.signed.json", clean=clean)
+        credential = self._decode_token(token)
 
-    def verify_presentation(self, presentation):
-        res, code = self._verify_presentation(presentation)
-        if code != 0:
+        if clean:
+            os.remove(outfile)
+
+        return credential, token
+
+
+    def verify_credential(
+        self,
+        token,
+        schema=None,
+        allowed_issuer=None,
+        clean=True
+    ):
+        vcfile = self._dump_token(token, "credential.signed.jwt")
+
+        res, code = self._verify_credential(
+            vcfile, schema=schema, allowed_issuer=allowed_issuer
+        )
+
+        if not code == 0:
             raise SSIVerificationError(res)
-        out = self._parse_verification_results(res)
-        return out
+
+        if "ERROR" in res.upper():
+            raise SSIVerificationError(res)
+
+        if "FAIL" in res.upper():
+            raise SSIVerificationError(res)
+
+        if not "SUCCESS" in res.upper():
+            raise SSIVerificationError("Invalid credential")
+
+        credential = self._decode_token(token)
+
+        if clean:
+            os.remove(vcfile)
+
+        return credential
+
+
+    def create_presentation(
+        self,
+        holder_key,
+        holder_did,
+        verifier_did,
+        credential_token,
+        nonce=None,
+        clean=True,
+    ):
+        vcfile = self._dump_token(credential_token, "credential.jwt")
+
+        presentation_definition = os.path.join(
+            self.confdir, "presentation-definition.json"
+        )
+        presentation_submission_output = os.path.join(
+            self.confdir, "presentation-submission-output.json"
+        )
+
+        vpfile = os.path.join(self.tmpdir, "presentation.jwt")
+        res, code = self._create_presentation(
+            holder_key,
+            holder_did,
+            verifier_did,
+            vcfile,
+            vpfile,
+            presentation_definition,
+            presentation_submission_output,
+            nonce=None
+        )
+        if not code == 0:
+            raise SSIGenerationError(res)
+
+        token = self._read_token("presentation.jwt")
+        presentation = self._decode_token(token)
+
+        if clean:
+            os.remove(vcfile)
+            os.remove(vpfile)
+
+        return presentation, token
+
+
+    def verify_presentation(self, holder_did, token, clean=True):
+        vpfile = self._dump_token(token, "presentation.jwt")
+
+        presentation_definition = os.path.join(
+            self.confdir, "presentation-definition.json"
+        )
+        presentation_submission_output = os.path.join(
+            self.confdir, "presentation-submission-output.json"
+        )
+
+        res, code = self._verify_presentation(
+            holder_did,
+            presentation_definition,
+            presentation_submission_output,
+            vpfile,
+        )
+
+        if not code == 0:
+            raise SSIVerificationError(res)
+
+        if "ERROR" in res.upper():
+            raise SSIVerificationError(res)
+
+        if "FAIL" in res.upper():
+            raise SSIVerificationError(res)
+
+        result = res.split("Overall: ")[1].split("\n")[0].upper()
+        if not "SUCCESS" in result:
+            raise SSIVerificationError("Invalid presentation")
+
+        presentation = self._decode_token(token)
+
+        if clean:
+            os.remove(vpfile)
+
+        return presentation

@@ -32,25 +32,20 @@ on Debian based systems).
 ```python
 from ssi_lib import SSI
 
-ssi = SSI('/home/user/tmp')
+ssi = SSI(
+  '/home/user/vault',
+  '/home/user/config',
+  '/home/user/tmp',
+)
 ```
 
 ### Key generation
 
-```python
-import os
-from ssi_lib import SSI
+### DID generation
 
-ssi = SSI('/home/user/tmp') # TODO: Remove auxiliary tmp file
+### Issuance
 
-storage = "/home/dev/storage"
-
-jwks = ssi.generate_key("Ed25519", storage, "key.json")
-keypath = os.path.join(storage, "key.json")
-did = ssi.generate_did(keypath, storage, "did.json")
-```
-
-## Documentation
+### Verification
 
 ## Development
 

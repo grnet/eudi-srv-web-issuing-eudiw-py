@@ -7,7 +7,9 @@ try:
     with open('requirements.txt', 'r') as f:
         install_requires = [_.strip() for _ in f.readlines()]
 except FileNotFoundError:
-    install_requires = []
+    install_requires = [
+        "pyjwt==2.8.0"
+    ]
 
 with open('README.md', 'r') as f:
     long_description = f.read()
