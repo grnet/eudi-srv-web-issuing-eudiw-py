@@ -179,11 +179,11 @@ class SSI(_SSI):
         if not code == 0:
             raise SSIVerificationError(res)
 
-        # TODO: More robust parsing
-        pattern = r"Success\s*\(([^()]*)\)"
-        ans = res.split("\n")[0]
-        matches = re.findall(pattern, ans)
-        presentation = json.loads(matches[0])
+        result = res.split("Overall: ")[1].split("\n")[0].upper()
+        if not "SUCCESS" in result:
+            raise SSIVerificationError("Invalid presentation")
+
+        presentation = self._decode_token(token)
 
         if clean:
             os.remove(vpfile)
