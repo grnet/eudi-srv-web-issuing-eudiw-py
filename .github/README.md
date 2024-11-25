@@ -13,7 +13,7 @@ Studio IDE, Android SDK, Android Debugging Bridge).
 
 ### This repo (issuer)
 
-1. Switch to branch "local-deploy".
+1. Switch to branch "feat-waltid".
 
 2. Find the <IP> of the Linux device in the local network (`ifconfig ...`).
 
