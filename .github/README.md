@@ -62,7 +62,7 @@ git submodule update --init
 
 2. Scan the QR code with the Android app. When prompted, use the Form Country (FC).
 
-## Development
+## Run with EBSI agent
 
 ### [`ebsi-agent`](https://github.com/fmerg/ebsi-agent) updates
 
