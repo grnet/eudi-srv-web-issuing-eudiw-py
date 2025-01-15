@@ -61,3 +61,21 @@ git submodule update --init
    and continue to generate a QR code for a credential.
 
 2. Scan the QR code with the Android app. When prompted, use the Form Country (FC).
+
+## Development
+
+### [`ebsi-agent`](https://github.com/fmerg/ebsi-agent) updates
+
+The submodule tracks the `develop` upstream.
+
+```bash
+$ ./ebsi-agent.sh info      # Check for upstream changes
+$ ./ebsi-agent.sh update    # Pull changes from upstream
+$ ./ensi-agent.sh commit    # Commit the fact that the downstream has been updated
+```
+
+For more options:
+
+```bash
+$ ./ebsi-agent.sh --help
+```
