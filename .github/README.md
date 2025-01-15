@@ -13,6 +13,18 @@ Studio IDE, Android SDK, Android Debugging Bridge).
 
 ### This repo (issuer)
 
+0. Clone the repo with iniitalized and updated git submodules:
+
+```bash
+$ git clone --recurse-submodules <url>
+```
+
+If you have already cloned the project without `--recurse-submodules`, do:
+
+```bash
+git submodule update --init
+```
+
 1. Switch to branch "local-deploy".
 
 2. Find the <IP> of the Linux device in the local network (`ifconfig ...`).
