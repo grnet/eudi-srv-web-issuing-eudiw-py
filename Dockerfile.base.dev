@@ -1,0 +1,49 @@
+FROM python:3.10-bullseye
+
+ENV PYTHONBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+ENV USERNAME=dev
+ENV HOMEDIR=/home/${USERNAME}
+
+RUN chmod 1777 /tmp
+
+WORKDIR ${HOMEDIR}
+
+# Setup java
+RUN apt-get update && apt-get install -y \
+    default-jre
+RUN export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+
+
+# Setup waltid-cli
+RUN git clone https://github.com/walt-id/waltid-identity.git
+WORKDIR waltid-identity
+RUN ./gradlew clean build
+RUN alias waltid="./waltid-cli.sh"
+RUN alias waltid="./waltid-cli-development.sh"
+RUN apt-get install -y openjdk-17-jre-headless  # TODO: Transfer
+WORKDIR waltid-applications/waltid-cli
+RUN ./waltid-cli.sh
+
+
+# Setup ssi-lib
+ENV CONFDIR=/home/${USERNAME}/config
+WORKDIR ${HOMEDIR}
+COPY ./ssi-lib ./ssi-lib
+WORKDIR ${HOMEDIR}/ssi-lib
+RUN pip install -r requirements.txt
+RUN rm -rf build/ dist/ ssi_lib.egg-info
+RUN python3 setup.py install
+WORKDIR ${HOMEDIR}
+RUN rm -rf ./ssi-lib
+
+
+# ssi-lib related folders
+COPY ./ssi-lib/config_files ${CONFDIR}
+ENV VAULT=${HOMEDIR}/vault
+ENV TMPDIR=${HOMEDIR}/tmp
+RUN mkdir -p ${VAULT}
+RUN mkdir -p ${TMPDIR}
+# TODO: Consider removing this
+ENV WALTDIR=${HOMEDIR}/waltid-identity/waltid-applications/waltid-cli

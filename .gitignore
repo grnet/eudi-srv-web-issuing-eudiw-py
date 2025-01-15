@@ -65,6 +65,15 @@ coverage.xml
 .pytest_cache/
 cover/
 
+# vim
+*.sw*
+
+# PEMs
+*.pem
+
+# JWKS
+*jwks.json
+
 # Translations
 *.mo
 *.pot

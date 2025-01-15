@@ -1,0 +1,14 @@
+services:
+  issuer:
+    container_name: eudi-issuer-dev
+    build:
+      context: .
+      dockerfile: Dockerfile.issuer.dev
+    expose:
+      - 7000
+    environment:
+      DEBUG: 1
+      PORT: 7000
+    volumes:
+      - ./.:/home/dev/app
+      - ./ssi-lib/scripts:/usr/local/sbin
