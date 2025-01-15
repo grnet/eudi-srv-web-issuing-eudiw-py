@@ -1,0 +1,3 @@
+[submodule "ebsi-agent"]
+	path = ebsi-agent
+	url = https://github.com/fmerg/ebsi-agent
