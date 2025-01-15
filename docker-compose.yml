@@ -1,0 +1,26 @@
+services:
+  issuer:
+    container_name: eudi-issuer-dev
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    expose:
+      - 7000
+    environment:
+      DEBUG: 1
+      PORT: 7000
+    volumes:
+      - ./.:/home/dev/app
+  ebsi-agent:
+    container_name: ebsi-agent-dev
+    build:
+      context: ./ebsi-agent
+      dockerfile: ./Dockerfile.dev
+    environment:
+      PORT: 3000
+    expose:
+      - 3000
+    ports:
+      - 3000:3000
+    volumes:
+      - ./ebsi-agent/app:/usr/home/app
