@@ -48,9 +48,6 @@ git submodule update --init
    cloned, see variable `ISSUER_DIR` in the script.
 
 3. Patch the issuer IP as above:
-```
-./patch_ip.sh IP
-```
 
 4. Build the Android app (`./gradlew assembleDevDebug` or through Android Studio) and deploy
    it to the connected Android device (`adb install path/to/app.apk`).
