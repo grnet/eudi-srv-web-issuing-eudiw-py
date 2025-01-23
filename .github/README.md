@@ -13,41 +13,20 @@ Studio IDE, Android SDK, Android Debugging Bridge).
 
 ### This repo (issuer)
 
-0. Clone the repo with iniitalized and updated git submodules:
-
-```bash
-$ git clone --recurse-submodules <url>
-```
-
-If you have already cloned the project without `--recurse-submodules`, do:
-
-```bash
-git submodule update --init
-```
-
 1. Switch to branch "local-deploy".
 
-2. Find the <IP> of the Linux device in the local network (`ifconfig ...`).
+2. Run `./setup-venv.sh` to setup virtual environment and install dependencies.
 
-3. In this repo, search and replace: `192.168.134.214` -> `<IP>`:
-```
-./patch_ip.sh IP
-```
-(To revert the IP patch above, run: `./undo_patch_ip.sh`)
+3. Run `./setup-cert.sh` to generate self-signed certificate bound to the local host IP.
 
-4. Run `./setup.sh` (it will need `sudo` access).
-
-5. Run the issuer: `./run-issuer.sh`
+4. Run `./run-issuer.sh` to spin up the issuer server.
 
 ### Android wallet
 
 1. Clone [the Android app fork](https://github.com/gfour/eudi-app-android-wallet-ui)
    and switch to branch "local-deploy".
 
-2. Run `./setup.sh`. This assumes that the issuer repository is also
-   cloned, see variable `ISSUER_DIR` in the script.
-
-3. Patch the issuer IP as above:
+3. Run the issuer as above
 
 4. Build the Android app (`./gradlew assembleDevDebug` or through Android Studio) and deploy
    it to the connected Android device (`adb install path/to/app.apk`).
