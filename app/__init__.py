@@ -48,6 +48,11 @@ from app_config.config_service import ConfService as cfgserv
 # Log
 from .app_config.config_service import ConfService as log
 
+# Config
+from .app_config import (
+    get_oidc_metadata, get_openid_configuration, get_oid_config
+)
+
 
 oidc_metadata = {}
 openid_metadata = {}
@@ -60,16 +65,11 @@ def setup_metadata():
 
     try:
         credentials_supported = {}
+
+        openid_metadata = get_openid_configuration()
+        oidc_metadata = get_oidc_metadata()
+
         dir_path = os.path.dirname(os.path.realpath(__file__))
-
-        with open(
-            dir_path + "/metadata_config/openid-configuration.json"
-        ) as openid_metadata:
-            openid_metadata = json.load(openid_metadata)
-
-        with open(dir_path + "/metadata_config/metadata_config.json") as metadata:
-            oidc_metadata = json.load(metadata)
-
         for file in os.listdir(dir_path + "/metadata_config/credentials_supported/"):
             if file.endswith("json"):
                 json_path = os.path.join(
@@ -256,13 +256,17 @@ def create_app(test_config=None):
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
-    config = create_from_config_file(
-        Configuration,
+    oid_config = get_oid_config()
+    config = Configuration(
+        oid_config,
         entity_conf=[
             {"class": OPConfiguration, "attr": "op", "path": ["op", "server_info"]}
         ],
-        filename=dir_path + "/app_config/oid_config.json",
         base_path=dir_path,
+        file_attributes=None,
+        domain="",
+        port=0,
+        dir_attributes=None,
     )
 
     app.srv_config = config.op
