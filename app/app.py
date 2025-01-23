@@ -39,6 +39,9 @@ import route_eidasnode, route_formatter, route_qeaa, route_oidc
 # Log
 from app_config.config_service import ConfService as log
 
+# Config
+from app_config import get_oid_config
+
 
 def handle_exception(e):
     # pass through HTTP errors
@@ -115,13 +118,17 @@ def create_app(test_config=None):
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
-    config = create_from_config_file(
-        Configuration,
+    oid_config = get_oid_config()
+    config = Configuration(
+        oid_config,
         entity_conf=[
             {"class": OPConfiguration, "attr": "op", "path": ["op", "server_info"]}
         ],
-        filename=dir_path + "/app_config/oid_config.json",
         base_path=dir_path,
+        file_attributes=None,
+        domain="",
+        port=0,
+        dir_attributes=None,
     )
 
     app.srv_config = config.op
