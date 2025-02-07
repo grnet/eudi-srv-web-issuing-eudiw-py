@@ -16,7 +16,7 @@
 #
 ###############################################################################
 """
-The PID Issuer Web service is a component of the PID Provider backend. 
+The PID Issuer Web service is a component of the PID Provider backend.
 Its main goal is to issue the PID and MDL in cbor/mdoc (ISO 18013-5 mdoc) and SD-JWT format.
 
 
@@ -73,7 +73,7 @@ def mdocFormatter(data, doctype, country, device_publickey):
 
     # Extract the key parameters
     priv_d = private_key.private_numbers().private_value
-    
+
     issuance_date = datetime.datetime.today()
     expiry_date = issuance_date + datetime.timedelta(days=cfgservice.config_doctype[doctype]["validity"])
 
@@ -81,7 +81,7 @@ def mdocFormatter(data, doctype, country, device_publickey):
         "issuance_date": issuance_date.strftime('%Y-%m-%d'),
         "expiry_date": expiry_date.strftime('%Y-%m-%d')
     }
-    
+
     """ if doctype == "org.iso.18013.5.1.mDL":
 
         # data["org.iso.18013.5.1"]["signature_usual_mark"] = base64.urlsafe_b64decode(
@@ -113,7 +113,7 @@ def mdocFormatter(data, doctype, country, device_publickey):
             "issuance_date": data[first_key]["issuance_date"],
             "expiry_date": data[first_key]["expiry_date"],
         } """
-    
+
     namespace = cfgservice.config_doctype[doctype]["namespace"]
 
     if "portrait" in data[namespace]:
@@ -133,33 +133,47 @@ def mdocFormatter(data, doctype, country, device_publickey):
         "KID": b"mdocIssuer",
     }
 
-    # Construct and sign the mdoc
-    mdoci = MdocCborIssuer(private_key=cose_pkey, alg="ES256")
+    # EBSI functionality
+    import argparse
+    import sys
+    import json
+    import os
 
-    revocation_json = None
-    if revocation_api_key:
-        payload = "doctype=" + doctype + "&country=" + country + "&expiry_date=" + validity["expiry_date"]
-        headers = {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'X-Api-Key': revocation_api_key
-        }
+    from urllib.parse import urljoin
+    def create_url(address, endpoint, prefix=""):
+        return urljoin(address, urljoin(prefix + "/", endpoint.lstrip("/")))
 
-        response = requests.get(cfgservice.revocation_service_url, headers=headers, data=payload, verify=False)
+    # TODO: Demo value
+    AGENT_ADDRESS = "http://localhost:3000"
+    issuer_did = "did:ebsi:zwLFeK372v5tLJbU6U5xPoX"
+    issuer_kid = "lmvb8kK8r_Vu0FKVjyoirL5DC_7hVoTfI7wfxpkSUQY"
+    holder_did = "did:ebsi:z23wc4CgC8oMXfDggCSz4C6B"
+    issuer_jwk = {
+        "kty": "EC",
+        "crv": "secp256k1",
+        "x": "99NqLATuybbMHdWDl6_VzPRDaNIMhUaBIkF_VdmLAmc",
+        "y": "ln3kh9oSg0TEQHTIzkI6nI7CC9Qwi2FnLnrqE2TDbBY",
+        "d": "YKo84B90BCASGNZUG0E86gAR3Lhwe5F3H2oOjedPheg"
+    }
+    # TODO: Adapt data according to use case
+    print(data)
+    claims = data
+    import requests
+    endpoint = "issue-vc/"
+    resp = requests.get(create_url(AGENT_ADDRESS, endpoint), json={
+        "issuer": {
+            "did": issuer_did,
+            "jwk": issuer_jwk,
+            "kid": issuer_kid,
+        },
+        "subject": {
+            "did": holder_did,
+        },
+        "claims": claims,
+    })
+    vc_token = resp.json()["token"]  # TODO: Handle errors?
 
-        if response.status_code == 200:
-            revocation_json = response.json()
-
-    mdoci.new(
-        doctype=doctype,
-        data=data,
-        validity=validity,
-        devicekeyinfo=device_publickey,
-        cert_path=cfgcountries.supported_countries[country]["pid_mdoc_cert"],
-        revocation = revocation_json
-                    
-          )
-
-    return base64.urlsafe_b64encode(mdoci.dump()).decode("utf-8")
+    return vc_token
 
 
 def cbor2elems(mdoc):
@@ -245,7 +259,7 @@ def sdjwtFormatter(PID, country):
 
         if response.status_code == 200:
             revocation_json = response.json()
-            
+
 
     claims = {
         "iss": cfgservice.service_url[:-1],
@@ -279,7 +293,7 @@ def sdjwtFormatter(PID, country):
         cfgcountries.supported_countries[country]["pid_mdoc_cert"], "rb"
     ) as certificate:
          certificate_data=certificate.read()
-    
+
     certificate_base64=base64.b64encode(certificate_data).decode("utf-8")
     x5c={
         "x5c":[]
@@ -391,8 +405,8 @@ def DATA_sd_jwt(PID):
             Data.update(data)
     if address_dict:
             data = {SDObj(value="address"): recursive(address_dict)}
-            Data.update(data)        
-            
+            Data.update(data)
+
     return Data
 
 
@@ -401,7 +415,7 @@ def recursive(dict):
     for f in dict:
         recursive = {SDObj(value=f): dict[f]}
         temp_dic.update(recursive)
-    return temp_dic 
+    return temp_dic
 
 def DatestringFormatter(date):
     date_objectiat = datetime.datetime.strptime(date, "%Y-%m-%d")
