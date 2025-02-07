@@ -37,7 +37,7 @@ function generate_config_file()
 EOF
 }
 
-./resolve-ip.sh
+echo $(./resolve-ip.sh) > .config.ip
 config_file=$(generate_config_file $(<.config.ip))
 
 openssl req -x509 -nodes -days 730 \
