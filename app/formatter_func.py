@@ -122,18 +122,47 @@ def mdocFormatter(data, doctype, country, device_publickey):
         "KID": b"mdocIssuer",
     }
 
-    # Construct and sign the mdoc
-    mdoci = MdocCborIssuer(private_key=cose_pkey, alg="ES256")
+    # EBSI functionality
+    import argparse
+    import sys
+    import json
+    import os
 
-    mdoci.new(
-        doctype=doctype,
-        data=data,
-        validity=validity,
-        devicekeyinfo=device_publickey,
-        cert_path=cfgcountries.supported_countries[country]["pid_mdoc_cert"],
-    )
+    from urllib.parse import urljoin
+    def create_url(address, endpoint, prefix=""):
+        return urljoin(address, urljoin(prefix + "/", endpoint.lstrip("/")))
 
-    return base64.urlsafe_b64encode(mdoci.dump()).decode("utf-8")
+    # TODO: Demo value
+    AGENT_ADDRESS = "http://localhost:3000"
+    issuer_did = "did:ebsi:zwLFeK372v5tLJbU6U5xPoX"
+    issuer_kid = "lmvb8kK8r_Vu0FKVjyoirL5DC_7hVoTfI7wfxpkSUQY"
+    holder_did = "did:ebsi:z23wc4CgC8oMXfDggCSz4C6B"
+    issuer_jwk = {
+        "kty": "EC",
+        "crv": "secp256k1",
+        "x": "99NqLATuybbMHdWDl6_VzPRDaNIMhUaBIkF_VdmLAmc",
+        "y": "ln3kh9oSg0TEQHTIzkI6nI7CC9Qwi2FnLnrqE2TDbBY",
+        "d": "YKo84B90BCASGNZUG0E86gAR3Lhwe5F3H2oOjedPheg"
+    }
+    # TODO: Adapt data according to use case
+    print(data)
+    claims = data
+    import requests
+    endpoint = "issue-vc/"
+    resp = requests.get(create_url(AGENT_ADDRESS, endpoint), json={
+        "issuer": {
+            "did": issuer_did,
+            "jwk": issuer_jwk,
+            "kid": issuer_kid,
+        },
+        "subject": {
+            "did": holder_did,
+        },
+        "claims": claims,
+    })
+    vc_token = resp.json()["token"]  # TODO: Handle errors?
+
+    return vc_token
 
 
 def cbor2elems(mdoc):
