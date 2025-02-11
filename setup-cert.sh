@@ -1,5 +1,17 @@
 #!/usr/bin/env bash
 
+if [ "$1" == "-h" ]; then
+    echo "Set up the certificate of the issuer"
+    echo "Usage: setup-cert.sh [LOCAL_IP]"
+    exit
+elif [ "$1" == "" ]; then
+    echo $(./resolve-ip.sh) > .config.ip
+else
+    echo $1 > .config.ip
+fi
+
+echo "Using local address: $(cat .config.ip)"
+
 echo Installing keys/certificates...
 sudo mkdir -p /etc/eudiw/pid-issuer/privkey/
 sudo chmod +rx /etc/eudiw
@@ -37,7 +49,6 @@ function generate_config_file()
 EOF
 }
 
-echo $(./resolve-ip.sh) > .config.ip
 config_file=$(generate_config_file $(<.config.ip))
 
 openssl req -x509 -nodes -days 730 \
