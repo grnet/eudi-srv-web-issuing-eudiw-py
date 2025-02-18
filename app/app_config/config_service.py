@@ -16,10 +16,10 @@
 #
 ###############################################################################
 """
-The PID Issuer Web service is a component of the PID Provider backend. 
+The PID Issuer Web service is a component of the PID Provider backend.
 Its main goal is to issue the PID in cbor/mdoc (ISO 18013-5 mdoc) and SD-JWT format.
 
-This config_service.py contains configuration data for the PID Issuer Web service. 
+This config_service.py contains configuration data for the PID Issuer Web service.
 
 NOTE: You should only change it if you understand what you're doing.
 """
@@ -27,7 +27,14 @@ NOTE: You should only change it if you understand what you're doing.
 import datetime
 import logging
 from logging.handlers import TimedRotatingFileHandler
+from os.path import dirname, join, realpath
 import os
+
+def get_host_ip():
+    dir_path = dirname(dirname(dirname(realpath(__file__))))
+    with open(join(dir_path, ".config.ip"), "r") as f:
+        host = f.read().strip()
+    return host
 
 
 class ConfService:
@@ -35,7 +42,7 @@ class ConfService:
     # PID issuer service URL
     # service_url = "https://preprod.issuer.eudiw.dev:4443/"
     # service_url = "https://issuer.eudiw.dev/"
-    service_url = "https://192.168.134.214:5000/"
+    service_url = f"https://{get_host_ip()}:5000/"
     # service_url = "https://dev.issuer.eudiw.dev/"
 
     wallet_test_url = "https://dev.tester.issuer.eudiw.dev/"
@@ -272,7 +279,7 @@ class ConfService:
             "organization_name": "Test QEAA issuer",
             "namespace": "org.iso.23220.2.photoid.1",
         }
-        
+
     }
 
     auth_method_supported_credencials = {

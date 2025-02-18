@@ -8,6 +8,9 @@ app/certs/PID-DS-0001_UT.pem
 flask_session/
 nohup.out
 
+# ip config
+.config.ip
+
 # Created by https://www.toptal.com/developers/gitignore/api/python
 # Edit at https://www.toptal.com/developers/gitignore?templates=python
 
