@@ -13,13 +13,18 @@ fi
 echo "Using local address: $(cat .config.ip)"
 
 echo Installing keys/certificates...
-sudo mkdir -p /etc/eudiw/pid-issuer/privkey/
+PRIVKEY_DIR=/etc/eudiw/pid-issuer/privKey/
+CERT_DIR=/etc/eudiw/pid-issuer/cert/
+sudo mkdir -p ${PRIVKEY_DIR}
+sudo mkdir -p ${CERT_DIR}
 sudo chmod +rx /etc/eudiw
 sudo chmod +rx /etc/eudiw/pid-issuer
-sudo chmod +rx /etc/eudiw/pid-issuer/privkey
+sudo chmod +rx ${PRIVKEY_DIR}
+sudo chmod +rx ${CERT_DIR}
 
-sudo unzip -o api_docs/test_tokens/DS-token/PID-DS-0002.zip -d /etc/eudiw/pid-issuer/privkey/
-sudo chmod +r /etc/eudiw/pid-issuer/privkey/*
+sudo unzip -o api_docs/test_tokens/DS-token/PID-DS-0002.zip -d ${PRIVKEY_DIR}
+sudo mv ${PRIVKEY_DIR}/PID-DS-0002.cert.der ${CERT_DIR}/
+sudo chmod +r ${PRIVKEY_DIR}*
 
 gunzip -f -k api_docs/test_tokens/IACA-token/PIDIssuerCAUT01.pem.gz
 sudo mkdir -p /etc/eudiw/pid-issuer/cert/
