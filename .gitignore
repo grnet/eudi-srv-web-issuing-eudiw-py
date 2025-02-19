@@ -206,3 +206,7 @@ log
 
 # IP file
 .config.ip
+
+# Local keys, regenerated on server startup
+app/static/jwks.json
+app/private/cookie_jwks.json
