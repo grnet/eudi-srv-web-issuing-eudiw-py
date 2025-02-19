@@ -220,3 +220,6 @@ yarn-error.log*
 package-lock.json
 
 .vscode/**
+
+# IP file
+.config.ip
