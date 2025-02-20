@@ -112,7 +112,7 @@ def clear_par():
                 request_headers = deferredRequests[req]["headers"]
                 print("\nheaders: ", request_headers)
 
-                response = requests.post(cfgservice.service_url+"credential", data=request_data, headers=request_headers)
+                response = requests.post(cfgservice.service_url+"credential", data=request_data, headers=request_headers, verify=False)
                 print("\nresponse", response.text)
                 response_data = response.json()
 
