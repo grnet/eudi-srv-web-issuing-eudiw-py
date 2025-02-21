@@ -1,6 +1,7 @@
 {
     "eu.europa.ec.eudi.pid_jwt_vc_json": {
     "format": "vc+sd-jwt",
+    "doctype": "eu.europa.ec.eudi.pid.1",
     "scope": "eu.europa.ec.eudi.pid.1",
     "cryptographic_binding_methods_supported": [
       "jwk", "cose_key"
