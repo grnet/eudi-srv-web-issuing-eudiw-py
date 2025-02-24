@@ -170,8 +170,9 @@ def cborformatter():
             }
         )
     
+    from samples import inject_sample_data
     base64_mdoc = mdocFormatter(
-        request.json["data"],
+        inject_sample_data(request.json),
         request.json["doctype"],
         request.json["country"],
         request.json["device_publickey"],
