@@ -16,12 +16,16 @@ This setup assumes two devices (one Android, one Linux).
    environment, install dependencies, generate self-signed certificate
    bound to the local host IP).
 
+3. Optional: consult the last section in the output of the command
+   above to find how to set up local signing certificates (signed
+   by a local IACA certificate).
+
 4. Run `./run-issuer.sh` to spin up the issuer server.
 
 ### Android wallet
 
 1. Clone [the Android app fork](https://github.com/gfour/eudi-app-android-wallet-ui)
-   and switch to branch "local-deploy".
+   and switch to branch "local-deploy-v2".
 
 3. Run the issuer as above
 
