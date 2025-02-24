@@ -22,15 +22,19 @@ sudo chmod +rx /etc/eudiw/pid-issuer
 sudo chmod +rx ${PRIVKEY_DIR}
 sudo chmod +rx ${CERT_DIR}
 
+echo Copying signing certificates...
 sudo unzip -o api_docs/test_tokens/DS-token/PID-DS-0002.zip -d ${PRIVKEY_DIR}
 sudo mv ${PRIVKEY_DIR}/PID-DS-0002.cert.der ${CERT_DIR}/
 sudo chmod +r ${PRIVKEY_DIR}*
 
+echo Copying IACA files...
 gunzip -f -k api_docs/test_tokens/IACA-token/PIDIssuerCAUT01.pem.gz
 sudo mkdir -p /etc/eudiw/pid-issuer/cert/
 sudo chmod +rx /etc/eudiw/pid-issuer/cert/
 sudo cp api_docs/test_tokens/IACA-token/PIDIssuerCAUT01.pem /etc/eudiw/pid-issuer/cert/
-
+if [ -f "root-ca-grnet.pem" ];
+   sudo cp root-ca-grnet.pem /etc/eudiw/pid-issuer/cert/
+fi
 
 function generate_config_file()
 {
