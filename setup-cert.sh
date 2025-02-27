@@ -10,7 +10,9 @@ else
     echo $1 > .config.ip
 fi
 
-echo "Using local address: $(cat .config.ip)"
+
+LOCAL_ADDR=$(cat .config.ip)
+echo "Using local address: ${LOCAL_ADDR}"
 
 echo Installing keys/certificates...
 PRIVKEY_DIR=/etc/eudiw/pid-issuer/privKey/
@@ -26,13 +28,19 @@ echo Copying signing certificates...
 sudo unzip -o api_docs/test_tokens/DS-token/PID-DS-0002.zip -d ${PRIVKEY_DIR}
 sudo mv ${PRIVKEY_DIR}/PID-DS-0002.cert.der ${CERT_DIR}/
 sudo chmod +r ${PRIVKEY_DIR}*
+if [ -f "${LOCAL_ADDR}.crt" ]; then
+    sudo cp ${LOCAL_ADDR}.crt ${CERT_DIR}/
+fi
+if [ -f "${LOCAL_ADDR}.key" ]; then
+    sudo cp ${LOCAL_ADDR}.key ${PRIVKEY_DIR}/
+fi
 
 echo Copying IACA files...
 gunzip -f -k api_docs/test_tokens/IACA-token/PIDIssuerCAUT01.pem.gz
 sudo mkdir -p /etc/eudiw/pid-issuer/cert/
 sudo chmod +rx /etc/eudiw/pid-issuer/cert/
 sudo cp api_docs/test_tokens/IACA-token/PIDIssuerCAUT01.pem /etc/eudiw/pid-issuer/cert/
-if [ -f "root-ca-grnet.pem" ];
+if [ -f "root-ca-grnet.pem" ]; then
    sudo cp root-ca-grnet.pem /etc/eudiw/pid-issuer/cert/
 fi
 
