@@ -25,12 +25,8 @@ This route_oidc.py file is the blueprint for the route /oidc of the PID Issuer W
 import base64
 import hashlib
 import io
-import random
 import re
-import sys
-import time
 import uuid
-import threading
 import urllib.parse
 import segno
 
@@ -45,7 +41,7 @@ from flask import (
     render_template,
     url_for,
 )
-from flask.helpers import make_response, send_from_directory
+from flask.helpers import make_response
 import os
 
 from flask_cors import CORS
@@ -55,9 +51,7 @@ import json
 import sys
 import traceback
 from typing import Union
-from urllib.parse import urlparse
 
-from cryptojwt import as_unicode
 from idpyoidc.message.oidc import AccessTokenRequest
 import werkzeug
 
@@ -357,10 +351,12 @@ def authorizationv2(
         url = url + "&authorization_details=" + authorization_details
 
     if code_challenge and code_challenge_method:
-        url = url + "&code_challenge="
-        +code_challenge
-        +"&code_challenge_method="
-        +code_challenge_method
+        url = (
+                url + "&code_challenge="
+                + code_challenge
+                + "&code_challenge_method="
+                + code_challenge_method
+        )
 
     payload = {}
     headers = {}
@@ -1117,15 +1113,47 @@ def load_test():
     return "load" """
 
 
+def create_qr_code(credential_offer_URI: str, credentials_id: list) -> tuple[str, str]:
+    credential_offer = {
+        "credential_issuer": cfgservice.service_url[:-1],
+        "credential_configuration_ids": credentials_id,
+        "grants": {
+            "authorization_code": {}},
+    }
+
+    json_string = json.dumps(credential_offer)
+
+    uri = f"{credential_offer_URI}credential_offer?credential_offer=" + urllib.parse.quote(json_string, safe=":/")
+
+    qrcode = segno.make(uri)
+    out = io.BytesIO()
+    qrcode.save(out, kind="png", scale=3)
+
+    qr_img_base64 = "data:image/png;base64," + base64.b64encode(out.getvalue()).decode("utf-8")
+
+    return uri, qr_img_base64
+
 @oidc.route("/credential_offer", methods=["GET", "POST"])
 def credentialOffer():
-
     credentialsSupported = oidc_metadata["credential_configurations_supported"]
     auth_choice = request.form.get("Authorization Code Grant")
     form_keys = request.form.keys()
     credential_offer_URI = request.form.get("credential_offer_URI")
 
-    if "proceed" in form_keys:
+    values = request.values
+    if 'sessionId' in values and 'credentialType' in values:
+        session_id = values["sessionId"]
+        credential_type = values["credentialType"]
+        credentials_id = [credential_type,]
+        _, qr_img_base64 = create_qr_code(credential_offer_URI, credentials_id)
+
+        return {
+            "qr": qr_img_base64,
+            "sessionId": session_id,
+        }, 200
+
+    elif "proceed" in form_keys:
+
         form = list(form_keys)
         form.remove("proceed")
         form.remove("credential_offer_URI")
@@ -1143,41 +1171,7 @@ def credentialOffer():
                 )
 
             else:
-
-                credential_offer = {
-                    "credential_issuer": cfgservice.service_url[:-1],
-                    "credential_configuration_ids": credentials_id,
-                    "grants": {"authorization_code": {}},
-                }
-
-                # create URI
-                json_string = json.dumps(credential_offer)
-
-                uri = (
-                    f"{credential_offer_URI}credential_offer?credential_offer="
-                    + urllib.parse.quote(json_string, safe=":/")
-                )
-
-                # Generate QR code
-                # img = qrcode.make("uri")
-                # QRCode.print_ascii()
-
-                qrcode = segno.make(uri)
-                out = io.BytesIO()
-                qrcode.save(out, kind="png", scale=3)
-
-                """ qrcode.to_artistic(
-                    background=cfgtest.qr_png,
-                    target=out,
-                    kind="png",
-                    scale=4,
-                ) """
-                # qrcode.terminal()
-                # qr_img_base64 = qrcode.png_data_uri(scale=4)
-
-                qr_img_base64 = "data:image/png;base64," + base64.b64encode(
-                    out.getvalue()
-                ).decode("utf-8")
+                uri, qr_img_base64 = create_qr_code(credential_offer_URI, credentials_id)
 
                 wallet_url = cfgservice.wallet_test_url + "credential_offer"
 
