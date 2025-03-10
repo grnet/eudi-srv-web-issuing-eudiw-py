@@ -1113,6 +1113,17 @@ def load_test():
     return "load" """
 
 
+@oidc.route("/issueStatus", methods=["GET"])
+def issue_status():
+    values = request.values
+    session_id = values["sessionId"]
+
+    return {
+        "status": "pending",
+        "reason": "ok",
+        "sessionId": session_id,
+    }, 200
+
 def create_qr_code(credential_offer_URI: str, credentials_id: list) -> tuple[str, str]:
     credential_offer = {
         "credential_issuer": cfgservice.service_url[:-1],
@@ -1132,6 +1143,7 @@ def create_qr_code(credential_offer_URI: str, credentials_id: list) -> tuple[str
     qr_img_base64 = "data:image/png;base64," + base64.b64encode(out.getvalue()).decode("utf-8")
 
     return uri, qr_img_base64
+
 
 @oidc.route("/credential_offer", methods=["GET", "POST"])
 def credentialOffer():
