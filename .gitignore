@@ -213,3 +213,8 @@ app/private/cookie_jwks.json
 
 # vim swap files
 *.sw*
+
+
+*.pem
+
+.idea/
