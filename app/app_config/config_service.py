@@ -103,7 +103,7 @@ class ConfService:
     pid_validity = 90
 
     # PID issuing Authority
-    pid_issuing_authority = "Test PID issuer"
+    pid_issuing_authority = "GRNET PID issuer"
 
     # PID Organization ID
     pid_organization_id = "EUDI Wallet Reference Implementation"

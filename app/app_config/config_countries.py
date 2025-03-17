@@ -92,6 +92,40 @@ class ConfCountries:
             ],
             "dynamic_R2": cfgserv.service_url + "dynamic/form_R2",
         },
+        "GR": {
+            "name": "Greece",
+            "pid_mdoc_privkey": "/etc/eudiw/pid-issuer/privKey/192.168.1.111.key",
+            "pid_mdoc_privkey_passwd": None,  # None or bytes
+            "pid_mdoc_cert": "/etc/eudiw/pid-issuer/cert/192.168.1.111.crt.der",
+            "un_distinguishing_sign": "GR",
+            "supported_credentials": [
+                "eu.europa.ec.eudi.pid_mdoc",
+                "eu.europa.ec.eudi.pid_jwt_vc_json",
+                "eu.europa.ec.eudi.mdl_mdoc",
+            ],
+            "oidc_auth": {
+                "base_url": "http://192.168.1.111",
+                "url": "http://192.168.1.111/oidc/authorization?",
+                "redirect_uri": "https://192.168.1.111:5000/dynamic/redirect",
+                "scope": "eu.europa.ec.eudi.pid.1",
+                "response_type": "code",
+                "client_id": "eudiw_login",
+                "client_secret": "secret",
+            },
+            "connection_type": "openid",
+            "attribute_request": {
+                "header": {"Host": "192.168.1.111"},
+            },
+            "oidc_redirect": {
+                "headers": {
+                    "Host": "192.168.1.111",
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Authorization": "Basic ZXVfZXVyb3BhX2VjX2V1ZGl3X3BpZF9wcm92aWRlcl8xX3BwcjpINUVpVjdPaGZMTUs1TFBvcXB0NG5WT1FJeEdicEZ3MQ==",
+                },
+                "grant_type": "authorization_code",
+                "redirect_uri": "https://192.168.1.111:5000/dynamic/redirect",
+            },
+        },
         "PT": {
             "name": "Portugal",
             "pid_mdoc_privkey": cfgserv.privKey_path + "PID-DS-0002_PT.pem",
@@ -168,7 +202,7 @@ class ConfCountries:
                 "headers": {
                     "Host": "tara-test.ria.ee",
                     "Content-Type": "application/x-www-form-urlencoded",
-                    "Authorization": "Basic ZXVfZXVyb3BhX2VjX2V1ZGl3X3BpZF9wcm92aWRlcl8xX3BwcjpINUVpVjdPaGZMTUs1TFBvcXB0NG5WT1FJeEdicEZ3MQ==",
+                    "Authorization": "Basic ZXVkaXdfbG9naW46c2VjcmV0Cg==",
                 },
                 "grant_type": "authorization_code",
                 "redirect_uri": "https://pprpid.provider.eudiw.projj.eu/tara/redirect",
