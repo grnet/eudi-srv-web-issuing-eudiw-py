@@ -335,6 +335,7 @@ def red():
             token_endpoint,
             data=params,
             headers=token_endpoint_headers,
+            verify=False,
         )
 
         response.raise_for_status()
