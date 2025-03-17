@@ -316,6 +316,7 @@ def red():
             token_endpoint,
             data=params,
             headers=token_endpoint_headers,
+            verify=False,
         )
 
         response.raise_for_status()
@@ -549,7 +550,7 @@ def dynamic_R2_data_collect(country, session_id, access_token):
             + "/.well-known/oauth-authorization-server"
         )
 
-        metadata_json = requests.get(metadata_url).json()
+        metadata_json = requests.get(metadata_url, verify=False).json()
 
         user_info_endpoint = metadata_json["userinfo_endpoint"]
 
@@ -819,6 +820,25 @@ def credentialCreation(credential_request, data, country, session_id):
                 form_data["portrait"] = base64.urlsafe_b64encode(
                     convert_png_to_jpeg(base64.b64decode(form_data["Portrait"]))
                 ).decode("utf-8")
+
+            elif country == "GR":
+                MAPPING: dict[str, str] = {
+                    "birthdate": "birth_date",
+                }
+                for attribute in data:
+                    print(f"Processing '{attribute}': {data[attribute]}")
+                    value = data[attribute]
+                    if attribute == "birthdate":
+                        try:
+                            value = datetime.strptime(value, '%d/%m/%Y').strftime('%Y-%m-%d')
+                        except Exception:
+                            print("Attribute transformation failed:", attribute)
+                    if attribute in MAPPING:
+                        form_data[MAPPING[attribute]] = value
+                    else:
+                        form_data[attribute] = value
+                print("form_data:", form_data)
+
 
             else:
 
