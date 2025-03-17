@@ -475,8 +475,9 @@ def red():
         + redirect_data["redirect_uri"]
     ) """
 
-    r = requests.post(token_endpoint, headers=headers, data=data)
+    r = requests.post(token_endpoint, headers=headers, data=data, verify=False)
     json_response = json.loads(r.text)
+    print("json_response:", json_response)
     session["access_token"] = json_response["access_token"]
 
     cfgserv.app_logger.info(
@@ -878,6 +879,25 @@ def credentialCreation(credential_request, data, country):
                 form_data["portrait"] = base64.urlsafe_b64encode(
                     convert_png_to_jpeg(base64.b64decode(form_data["Portrait"]))
                 ).decode("utf-8")
+
+            elif country == "GR":
+                MAPPING: dict[str, str] = {
+                    "birthdate": "birth_date",
+                }
+                for attribute in data:
+                    print(f"Processing '{attribute}': {data[attribute]}")
+                    value = data[attribute]
+                    if attribute == "birthdate":
+                        try:
+                            value = datetime.strptime(value, '%d/%m/%Y').strftime('%Y-%m-%d')
+                        except Exception:
+                            print("Attribute transformation failed:", attribute)
+                    if attribute in MAPPING:
+                        form_data[MAPPING[attribute]] = value
+                    else:
+                        form_data[attribute] = value
+                print("form_data:", form_data)
+
 
             else:
 
