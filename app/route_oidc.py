@@ -228,6 +228,7 @@ def verify_user():
 
 @oidc.route("/.well-known/<service>")
 def well_known(service):
+    session_id = request.values.get("sessionId")
     if service == "openid-credential-issuer":
         info = {
             "response": oidc_metadata,
@@ -387,10 +388,7 @@ def authorizationv2(
 
     session["authorization_params"] = params
 
-    session_id = str(uuid.uuid4())
-    session_ids.update(
-        {session_id: {"expires": datetime.now() + timedelta(minutes=60)}}
-    )
+    session_id = request.values["session-id"]
     session["session_id"] = session_id
     cfgservice.app_logger.info(
         ", Session ID: "
@@ -767,9 +765,7 @@ def par_endpoint():
 
 @oidc.route("/pushed_authorizationv2", methods=["POST"])
 def par_endpointv2():
-
-    session_id = str(uuid.uuid4())
-
+    session_id = request.values["sessionId"]
     cfgservice.app_logger.info(
         ", Session ID: "
         + session_id
@@ -808,21 +804,15 @@ def par_endpointv2():
         + str(json.loads(response.get_data()))
     )
 
-    session_ids.update(
-        {
-            session_id: {
-                "expires": datetime.now() + timedelta(minutes=60),
-                "request_uri": json.loads(response.get_data())["request_uri"],
-            }
-        }
-    )
+    session_ids[session_id].update({
+        "request_uri": json.loads(response.get_data())["request_uri"],
+    })
 
     return response
 
 
 @oidc.route("/credential", methods=["POST"])
 def credential():
-
     headers = dict(request.headers)
     payload = json.loads(request.data)
 
@@ -831,7 +821,7 @@ def credential():
 
     access_token = headers["Authorization"][7:]
     session_id = getSessionId_accessToken(access_token)
-
+    session_id = request.values["sessionId"]
     cfgservice.app_logger.info(
         ", Session ID: "
         + session_id
@@ -887,6 +877,7 @@ def credential():
         + "Credential response, Payload: "
         + str(_response)
     )
+    session_ids[session_id]["status"] = "success"
     return _response
 
 
@@ -1115,8 +1106,15 @@ def load_test():
 
 @oidc.route("/issueStatus", methods=["GET"])
 def issue_status():
-    values = request.values
-    session_id = values["sessionId"]
+    session_id = request.values["sessionId"]
+    try:
+        session = session_ids[session_id]
+    except:
+        return {
+            "status": "fail",
+            "reason": "no issuance session found",
+            "sessionId": session_id,
+        }, 500
 
     return {
         "status": "pending",
@@ -1124,14 +1122,7 @@ def issue_status():
         "sessionId": session_id,
     }, 200
 
-def create_qr_code(credential_offer_URI: str, credentials_id: list) -> tuple[str, str]:
-    credential_offer = {
-        "credential_issuer": cfgservice.service_url[:-1],
-        "credential_configuration_ids": credentials_id,
-        "grants": {
-            "authorization_code": {}},
-    }
-
+def create_qr_code(credential_offer_URI: str, credential_offer) -> tuple[str, str]:
     json_string = json.dumps(credential_offer)
 
     uri = f"{credential_offer_URI}credential_offer?credential_offer=" + urllib.parse.quote(json_string, safe=":/")
@@ -1156,8 +1147,22 @@ def credentialOffer():
     if 'sessionId' in values and 'credentialType' in values:
         session_id = values["sessionId"]
         credential_type = values["credentialType"]
-        credentials_id = [credential_type,]
-        _, qr_img_base64 = create_qr_code(credential_offer_URI, credentials_id)
+
+        session_ids.update(
+            {
+                session_id: {
+                    "expires": datetime.now() + timedelta(minutes=60)}
+            },
+        )
+        url = os.environ.get('SERVICE_URL')
+        credential_offer = {
+            "credential_issuer": cfgservice.service_url[:-1],
+            "credential_configuration_ids": [credential_type,],
+            "grants": {
+                "authorization_code": {}},
+        }
+
+        _, qr_img_base64 = create_qr_code(url, credential_offer)
 
         return {
             "qr": qr_img_base64,
@@ -1183,7 +1188,13 @@ def credentialOffer():
                 )
 
             else:
-                uri, qr_img_base64 = create_qr_code(credential_offer_URI, credentials_id)
+                credential_offer = {
+                    "credential_issuer": cfgservice.service_url[:-1],
+                    "credential_configuration_ids": credentials_id,
+                    "grants": {
+                        "authorization_code": {}},
+                }
+                uri, qr_img_base64 = create_qr_code(credential_offer_URI, credential_offer)
 
                 wallet_url = cfgservice.wallet_test_url + "credential_offer"
 
