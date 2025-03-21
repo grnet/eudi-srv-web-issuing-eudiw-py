@@ -35,6 +35,11 @@ function install_certificates() {
 
 function generate_config_file()
 {
+    if [ "${HOSTNAME}" != "" ]; then
+        DNS_ALT_NAME="DNS.1 = ${HOSTNAME}"
+    else
+        DNS_ALT_NAME=""
+    fi
     cat << EOF
 [req]
 default_bits = 2048
@@ -63,7 +68,8 @@ extendedKeyUsage = serverAuth, clientAuth, codeSigning, emailProtection
 subjectAltName = @alt_names
 
 [alt_names]
-IP.1 = ${LOCAL_ADDR}
+IP.1 = ${IP}
+${DNS_ALT_NAME}
 EOF
 }
 
@@ -113,21 +119,36 @@ function generate_ssl_certificate() {
 
     if [ $CUSTOM_ROOT_CA -eq 1 ]; then
         echo "== Verifying the certificate using root CA ${LOCAL_ROOT_CA} =="
-        openssl verify -CAfile ${LOCAL_ROOT_CA} -purpose sslserver -verify_ip ${LOCAL_ADDR} ${CRT}
+        openssl verify -CAfile ${LOCAL_ROOT_CA} -purpose sslserver -verify_ip ${IP} ${CRT}
     fi
 }
 
 if [ "$1" == "-h" ]; then
     echo "Set up the certificate of the issuer"
-    echo "Usage: setup-cert.sh [LOCAL_IP]"
+    echo "Usage: setup-cert.sh [IP] [HOSTNAME]"
     exit
-elif [ "$1" == "" ]; then
+fi
+
+# IP setup
+rm -f .config.ip
+if [ "$1" == "" ]; then
     echo $(./resolve-ip.sh) > .config.ip
 else
     echo $1 > .config.ip
 fi
+IP=$(cat .config.ip)
 
-LOCAL_ADDR=$(cat .config.ip)
+# Hostname setup
+rm -f .config.hostname
+if [ "$2" != "" ]; then
+    HOSTNAME=$2
+    LOCAL_ADDR=${HOSTNAME}
+    echo "Using local hostname: ${LOCAL_ADDR}"
+    echo ${LOCAL_ADDR} > .config.hostname
+else
+    HOSTNAME=
+    LOCAL_ADDR=${IP}
+fi
 echo "Using local address: ${LOCAL_ADDR}"
 
 generate_ssl_certificate
