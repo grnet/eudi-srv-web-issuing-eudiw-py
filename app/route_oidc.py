@@ -1109,7 +1109,7 @@ def issue_status():
     session_id = request.values["sessionId"]
     try:
         session = session_ids[session_id]
-    except:
+    except KeyError:
         return {
             "status": "fail",
             "reason": "no issuance session found",
@@ -1138,77 +1138,34 @@ def create_qr_code(credential_offer_URI: str, credential_offer) -> tuple[str, st
 
 @oidc.route("/credential_offer", methods=["GET", "POST"])
 def credentialOffer():
-    credentialsSupported = oidc_metadata["credential_configurations_supported"]
-    auth_choice = request.form.get("Authorization Code Grant")
-    form_keys = request.form.keys()
-    credential_offer_URI = request.form.get("credential_offer_URI")
-
     values = request.values
-    if 'sessionId' in values and 'credentialType' in values:
-        session_id = values["sessionId"]
-        credential_type = values["credentialType"]
+    session_id = values["sessionId"]
+    credential_type = values["credentialType"]
 
-        session_ids.update(
-            {
-                session_id: {
-                    "expires": datetime.now() + timedelta(minutes=60)}
-            },
-        )
-        url = os.environ.get('SERVICE_URL')
-        credential_offer = {
-            "credential_issuer": cfgservice.service_url[:-1],
-            "credential_configuration_ids": [credential_type,],
-            "grants": {
-                "authorization_code": {}},
-        }
+    session_ids.update(
+        {
+            session_id: {
+                "expires": datetime.now() + timedelta(minutes=60)}
+        },
+    )
 
-        _, qr_img_base64 = create_qr_code(url, credential_offer)
-
-        return {
-            "qr": qr_img_base64,
-            "sessionId": session_id,
-        }, 200
-
-    elif "proceed" in form_keys:
-
-        form = list(form_keys)
-        form.remove("proceed")
-        form.remove("credential_offer_URI")
-        form.remove("Authorization Code Grant")
-        all_exist = all(credential in credentialsSupported for credential in form)
-
-        if all_exist:
-            credentials_id = form
-            session["credentials_id"] = credentials_id
-            credentials_id_list = json.dumps(form)
-            if auth_choice == "pre_auth_code":
-                session["credential_offer_URI"] = credential_offer_URI
-                return redirect(
-                    url_for("preauth.preauthRed", credentials_id=credentials_id_list)
-                )
-
-            else:
-                credential_offer = {
-                    "credential_issuer": cfgservice.service_url[:-1],
-                    "credential_configuration_ids": credentials_id,
-                    "grants": {
-                        "authorization_code": {}},
-                }
-                uri, qr_img_base64 = create_qr_code(credential_offer_URI, credential_offer)
-
-                wallet_url = cfgservice.wallet_test_url + "credential_offer"
-
-                return render_template(
-                    "openid/credential_offer_qr_code.html",
-                    wallet_dev=wallet_url
-                    + "?credential_offer="
-                    + json.dumps(credential_offer),
-                    url_data=uri,
-                    qrcode=qr_img_base64,
-                )
-
+    if credential_type == "pid":
+        credential_id = "eu.europa.ec.eudi.pid_mdoc"
+    elif credential_type == "pid_jwt":
+        credential_id = "eu.europa.ec.eudi.pid_jwt_vc_json"
     else:
-        return redirect(cfgservice.service_url + "credential_offer_choice")
+        return "Credential type not found", 400
+
+    credential_offer = {
+        "credential_issuer": cfgservice.service_url[:-1],
+        "credential_configuration_ids": [credential_id,],
+        "grants": {
+            "authorization_code": {}
+        },
+        "issuer_state": str(uuid.uuid4()),
+    }
+
+    return credential_offer, 200
 
 
 """ @oidc.route("/testgetauth", methods=["GET"])
