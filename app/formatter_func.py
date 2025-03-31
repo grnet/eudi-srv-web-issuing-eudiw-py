@@ -133,6 +133,38 @@ def mdocFormatter(data, doctype, country, device_publickey):
         "KID": b"mdocIssuer",
     }
 
+    vc_token = get_ebsi_vc_token(data)
+
+    # Construct and sign the mdoc
+    mdoci = MdocCborIssuer(private_key=cose_pkey, alg="ES256")
+
+    revocation_json = None
+    if revocation_api_key:
+        payload = "doctype=" + doctype + "&country=" + country + "&expiry_date=" + validity["expiry_date"]
+        headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Api-Key': revocation_api_key
+        }
+
+        response = requests.get(cfgservice.revocation_service_url, headers=headers, data=payload, verify=False)
+
+        if response.status_code == 200:
+            revocation_json = response.json()
+
+    mdoci.new(
+        doctype=doctype,
+        data={"eu.europa.ec.eudi.pid.1": {"vc_token": vc_token}},
+        validity=validity,
+        devicekeyinfo=device_publickey,
+        cert_path=cfgcountries.supported_countries[country]["pid_mdoc_cert"],
+        revocation = revocation_json
+                    
+          )
+
+    return base64.urlsafe_b64encode(mdoci.dump()).decode("utf-8")
+
+
+def get_ebsi_vc_token(data):
     # EBSI functionality
     import argparse
     import sys
