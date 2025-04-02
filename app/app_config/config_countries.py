@@ -36,10 +36,10 @@ class ConfCountries:
         "EU": {
             "name": "nodeEU",
             "pid_url_oidc": cfgserv.service_url + "eidasnode/lightrequest?country=EU",
-            "pid_mdoc_privkey": "/etc/eudiw/pid-issuer/privKey/PID-DS-0002.cert.der",
+            "pid_mdoc_privkey": "/etc/eudiw/pid-issuer/privKey/192.168.61.2.key",
             # "pid_mdoc_privkey": 'app\certs\PID-DS-0001_EU.pem',
-            "pid_mdoc_privkey_passwd": b"pid-ds-0002",  # None or bytes,
-            "pid_mdoc_cert": "/etc/eudiw/pid-issuer/cert/PID-DS-0002.pid-ds-0002.key.pem",
+            "pid_mdoc_privkey_passwd": None,  # None or bytes,
+            "pid_mdoc_cert": "/etc/eudiw/pid-issuer/cert/192.168.61.2.crt.der",
             "loa": "http://eidas.europa.eu/LoA/high",
             "supported_credentials": [
                 "eu.europa.ec.eudi.pid_mdoc",
