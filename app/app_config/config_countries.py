@@ -91,6 +91,7 @@ class ConfCountries:
                 "eu.europa.ec.eudi.cor_mdoc",
                 "eu.europa.ec.eudi.ehic_sd_jwt_vc",
                 "eu.europa.ec.eudi.pda1_sd_jwt_vc"
+                "eu.europa.ec.eudi.educational_id_mdoc",
             ],
             "dynamic_R2": cfgserv.service_url + "dynamic/form_R2",
         },

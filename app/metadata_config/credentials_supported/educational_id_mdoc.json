@@ -1,0 +1,186 @@
+{
+    "eu.europa.ec.eudi.educational_id_mdoc": {
+        "format": "mso_mdoc",
+        "doctype": "eu.europa.ec.eudi.educational_id.1",
+        "scope": "eu.europa.ec.eudi.educational_id.1",
+        "policy": {
+            "batch_size": 50,
+            "one_time_use": true
+        },
+        "cryptographic_binding_methods_supported": [
+          "jwk", "cose_key"
+        ],
+        "credential_alg_values_supported": [
+            -7
+          ],
+        "credential_crv_values_supported": [
+          1
+        ],
+        "credential_signing_alg_values_supported": [
+          "ES256"
+        ],
+        "proof_types_supported": {
+          "jwt": {
+            "proof_signing_alg_values_supported": [
+              "ES256"
+            ]
+          },
+          "cwt": {
+            "proof_signing_alg_values_supported": [
+              "ES256"
+            ],
+            "proof_alg_values_supported": [
+              -7
+            ],
+            "proof_crv_values_supported": [
+              1
+            ]
+          }
+        },
+        "display": [
+          {
+            "name": "Educational ID",
+            "locale": "en",
+            "logo": {
+              "uri": "https://examplestate.com/public/educational_ID.png",
+              "alt_text": "A square figure of a educational ID"
+            }
+          }
+        ],
+        "claims": {
+          "eu.europa.ec.eudi.educational_id.1": {
+            "educational_id_number": {
+              "mandatory": true,
+              "value_type":"string",
+              "source":"user",
+              "display": [
+                {
+                  "name": "Educational ID",
+                  "locale": "en"            }
+              ]
+            },
+            "educational_id_identifier": {
+              "mandatory": true,
+              "value_type":"string",
+              "source":"user",
+              "display": [
+                {
+                  "name": "Educational ID identifier",
+                  "locale": "en"            }
+              ]
+            },
+            "schacHomeOrganization": {
+              "mandatory": false,
+              "value_type":"string",
+              "source":"user",
+              "display": [
+                {
+                  "name": "Educational institution name",
+                  "locale": "en"            }
+              ]
+            },
+            "family_name": {
+              "mandatory": false,
+              "value_type":"string",
+              "source":"user",
+              "display": [
+                {
+                  "name": "Family Name",
+                  "locale": "en"            }
+              ]
+            },
+            "displayName": {
+              "mandatory": false,
+              "value_type":"string",
+              "source":"user",
+              "display": [
+                {
+                  "name": "Preferred name to display",
+                  "locale": "en"            }
+              ]
+            },
+            "dateOfBirth": {
+              "mandatory": false,
+              "value_type":"full-date",
+              "source":"user",
+              "display": [
+                {
+                  "name": "Birth Date",
+                  "locale": "en"
+                }
+              ]
+            },
+            "commonName": {
+              "mandatory": false,
+              "value_type":"string",
+              "source":"user",
+              "display": [
+                {
+                  "name": "Birth names of the person",
+                  "locale": "en"            }
+              ]
+            },
+            "mail": {
+              "mandatory": false,
+              "value_type":"string",
+              "source":"user",
+              "display": [
+                {
+                  "name": "User's email address",
+                  "locale": "en"            }
+              ]
+            },
+            "eduPersonPrincipalName": {
+              "mandatory": false,
+              "value_type":"string",
+              "source":"issuer",
+              "display": [
+                {
+                  "name": "A persistent identifier within the institution",
+                  "locale": "en"            }
+              ]
+            },
+            "eduPersonPrimaryAffiliation": {
+              "mandatory": false,
+              "value_type":"string",
+              "source":"user",
+              "display": [
+                {
+                  "name": "Main role at the institution",
+                  "locale": "en"            }
+              ]
+            },
+            "eduPersonAffiliation": {
+              "mandatory": false,
+              "value_type":"string",
+              "source":"user",
+              "display": [
+                {
+                  "name": "List of all roles (student, staff, etc.)",
+                  "locale": "en"            }
+              ]
+            },
+            "eduPersonScopedAffiliation": {
+              "mandatory": true,
+              "value_type":"string",
+              "source":"user",
+              "display": [
+                {
+                  "name": "Roles with institutional context",
+                  "locale": "en"            }
+              ]
+            },
+            "eduPersonAssurance": {
+              "mandatory": false,
+              "value_type":"string",
+              "source":"user",
+              "display": [
+                {
+                  "name": "Identity assurance levels meeting REFEDS framework standards",
+                  "locale": "en"            }
+              ]
+            }
+          }
+        }
+      }
+    }
