@@ -49,7 +49,7 @@
         ],
         "claims": {
           "eu.europa.ec.eudi.educational_id.1": {
-            "tax_number": {
+            "educational_id_number": {
               "mandatory": true,
               "value_type":"string",
               "source":"user",
@@ -59,48 +59,48 @@
                   "locale": "en"            }
               ]
             },
-            "affiliation_country": {
+            "educational_id_identifier": {
               "mandatory": true,
               "value_type":"string",
               "source":"user",
               "display": [
                 {
-                  "name": "Affiliation Country",
+                  "name": "Educational ID identifier",
                   "locale": "en"            }
               ]
             },
-            "registered_given_name": {
-              "mandatory": true,
+            "schacHomeOrganization": {
+              "mandatory": false,
               "value_type":"string",
               "source":"user",
               "display": [
                 {
-                  "name": "Registered Given Name",
+                  "name": "Educational institution name",
                   "locale": "en"            }
               ]
             },
-            "registered_family_name": {
-              "mandatory": true,
+            "family_name": {
+              "mandatory": false,
               "value_type":"string",
               "source":"user",
               "display": [
                 {
-                  "name": "Registered Family Name",
+                  "name": "Family Name",
                   "locale": "en"            }
               ]
             },
-            "resident_address": {
-              "mandatory": true,
+            "displayName": {
+              "mandatory": false,
               "value_type":"string",
               "source":"user",
               "display": [
                 {
-                  "name": "Resident Address",
+                  "name": "Preferred name to display",
                   "locale": "en"            }
               ]
             },
-            "birth_date": {
-              "mandatory": true,
+            "dateOfBirth": {
+              "mandatory": false,
               "value_type":"full-date",
               "source":"user",
               "display": [
@@ -110,85 +110,74 @@
                 }
               ]
             },
-            "church_tax_ID": {
+            "commonName": {
               "mandatory": false,
               "value_type":"string",
               "source":"user",
               "display": [
                 {
-                  "name": "Church Tax ID",
-                  "locale": "en"
-                }
+                  "name": "Birth names of the person",
+                  "locale": "en"            }
               ]
             },
-            "iban": {
+            "mail": {
               "mandatory": false,
               "value_type":"string",
               "source":"user",
               "display": [
                 {
-                  "name": "IBAN",
-                  "locale": "en"
-                }
+                  "name": "User's email address",
+                  "locale": "en"            }
               ]
             },
-            "credential_type": {
-              "mandatory": true,
-              "source":"issuer",
-              "display": [
-                {
-                  "name": "Credential Type",
-                  "locale": "en"
-                }
-              ]
-            },
-            "issuance_date": {
-              "mandatory": true,
-              "source":"issuer",
-              "display": [
-                {
-                  "name": "Issuance Date",
-                  "locale": "en"
-                }
-              ]
-            },
-            "expiry_date": {
-              "mandatory": true,
-              "source":"issuer",
-              "display": [
-                {
-                  "name": "Expiry Date",
-                  "locale": "en"
-                }
-              ]
-            },
-            "issuing_authority": {
-              "mandatory": true,
-              "source":"issuer",
-              "display": [
-                {
-                  "name": "Issuing Authority",
-                  "locale": "en"
-                }
-              ]
-            },
-            "issuing_jurisdiction": {
+            "eduPersonPrincipalName": {
               "mandatory": false,
+              "value_type":"string",
+              "source":"user",
               "display": [
                 {
-                  "name": "",
-                  "locale": "en"
-                }
+                  "name": "A persistent identifier within the institution",
+                  "locale": "en"            }
               ]
             },
-            "issuing_country": {
-              "mandatory": true,
-              "source":"issuer",
+            "eduPersonPrimaryAffiliation": {
+              "mandatory": false,
+              "value_type":"string",
+              "source":"user",
               "display": [
                 {
-                  "name": "Alpha-2 country code, as defined in ISO 3166-1, of the issuing authority’s country or territory",
-                  "locale": "en"
-                }
+                  "name": "Main role at the institution",
+                  "locale": "en"            }
+              ]
+            },
+            "eduPersonAffiliation": {
+              "mandatory": false,
+              "value_type":"string",
+              "source":"user",
+              "display": [
+                {
+                  "name": "List of all roles (student, staff, etc.)",
+                  "locale": "en"            }
+              ]
+            },
+            "eduPersonScopedAffiliation": {
+              "mandatory": true,
+              "value_type":"string",
+              "source":"user",
+              "display": [
+                {
+                  "name": "Roles with institutional context",
+                  "locale": "en"            }
+              ]
+            },
+            "eduPersonAssurance": {
+              "mandatory": false,
+              "value_type":"string",
+              "source":"user",
+              "display": [
+                {
+                  "name": "Identity assurance levels meeting REFEDS framework standards",
+                  "locale": "en"            }
               ]
             }
           }
