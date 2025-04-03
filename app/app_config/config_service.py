@@ -351,7 +351,14 @@ class ConfService:
             "validity": qeaa_validity,
             "organization_name": "Test QEAA issuer",
             "namespace": "org.iso.18013.5.reservation.1",
-        }
+        },
+        "eu.europa.ec.eudi.educational_id.1": {
+            "issuing_authority": "Test QEAA issuer",
+            "organization_id": pid_organization_id,
+            "validity": qeaa_validity,
+            "organization_name": "Test QEAA issuer",
+            "namespace": "eu.europa.ec.eudi.educational_id.1",
+        },
     }
 
     auth_method_supported_credencials = {
@@ -363,7 +370,7 @@ class ConfService:
             "eu.europa.ec.eudi.hiid_mdoc",
             "eu.europa.ec.eudi.tax_mdoc",
             "eu.europa.ec.eudi.msisdn_mdoc",
-            "eu.europa.ec.eudi.educational_id_mdoc",
+            #"eu.europa.ec.eudi.educational_id_mdoc", 
         ],
         "country_selection": [
             "eu.europa.ec.eudi.loyalty_mdoc",
@@ -379,7 +386,7 @@ class ConfService:
             "eu.europa.ec.eudi.tax_mdoc",
             "eu.europa.ec.eudi.msisdn_mdoc",
             "eu.europa.ec.eudi.ehic_mdoc",
-            "eu.europa.ec.eudi.educational_id_mdoc",
+            #"eu.europa.ec.eudi.educational_id_mdoc",
         ],
     }
 
