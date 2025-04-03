@@ -133,7 +133,7 @@
             "eduPersonPrincipalName": {
               "mandatory": false,
               "value_type":"string",
-              "source":"user",
+              "source":"issuer",
               "display": [
                 {
                   "name": "A persistent identifier within the institution",
