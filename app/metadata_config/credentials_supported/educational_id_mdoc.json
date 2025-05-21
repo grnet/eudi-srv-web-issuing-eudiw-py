@@ -47,140 +47,205 @@
             }
           }
         ],
-        "claims": {
-          "eu.europa.ec.eudi.educational_id.1": {
-            "educational_id_number": {
-              "mandatory": true,
-              "value_type":"string",
-              "source":"user",
-              "display": [
+       "claims":[
+          {
+             "path":[
+                "eu.europa.ec.eudi.educational_id.1",
+                "educational_id_number"
+             ],
+             "mandatory": true,
+             "value_type":"string",
+             "source":"user",
+             "display":[
                 {
-                  "name": "Educational ID",
-                  "locale": "en"            }
-              ]
-            },
-            "educational_id_identifier": {
-              "mandatory": true,
-              "value_type":"string",
-              "source":"user",
-              "display": [
+                  "name":"Educational ID",
+                  "locale":"en"
+                }
+             ]
+          },
+          {
+             "path":[
+                "eu.europa.ec.eudi.educational_id.1",
+                "educational_id_identifier"
+             ],
+             "mandatory": true,
+             "value_type":"string",
+             "source":"user",
+             "display":[
                 {
                   "name": "Educational ID identifier",
                   "locale": "en"            }
-              ]
-            },
-            "schacHomeOrganization": {
-              "mandatory": false,
-              "value_type":"string",
-              "source":"user",
-              "display": [
+             ]
+          },
+          {
+             "path":[
+                "eu.europa.ec.eudi.educational_id.1",
+                "schacHomeOrganization"
+             ],
+             "mandatory": false,
+             "value_type":"string",
+             "source":"user",
+             "display":[
                 {
                   "name": "Educational institution name",
-                  "locale": "en"            }
-              ]
-            },
-            "family_name": {
-              "mandatory": false,
-              "value_type":"string",
-              "source":"user",
-              "display": [
-                {
-                  "name": "Family Name",
-                  "locale": "en"            }
-              ]
-            },
-            "displayName": {
-              "mandatory": false,
-              "value_type":"string",
-              "source":"user",
-              "display": [
-                {
-                  "name": "Preferred name to display",
-                  "locale": "en"            }
-              ]
-            },
-            "dateOfBirth": {
-              "mandatory": false,
-              "value_type":"full-date",
-              "source":"user",
-              "display": [
-                {
-                  "name": "Birth Date",
                   "locale": "en"
                 }
-              ]
-            },
-            "commonName": {
-              "mandatory": false,
-              "value_type":"string",
-              "source":"user",
-              "display": [
+             ]
+          },
+          {
+             "path":[
+                "eu.europa.ec.eudi.educational_id.1",
+                "family_name"
+             ],
+             "mandatory": false,
+             "value_type":"string",
+             "source":"user",
+             "display": [
+                {
+                  "name":"Family Name",
+                  "locale":"en"
+                }
+             ]
+          },
+          {
+             "path":[
+                "eu.europa.ec.eudi.educational_id.1",
+                "displayName"
+             ],
+             "mandatory": false,
+             "value_type":"string",
+             "source":"user",
+             "display": [
+                {
+                  "name":"Preferred name to display",
+                  "locale":"en"
+                }
+             ]
+          },
+          {
+             "path":[
+                "eu.europa.ec.eudi.educational_id.1",
+                "dateOfBirth"
+             ],
+             "mandatory": false,
+             "value_type":"full-date",
+             "source":"user",
+             "display":[
+                {
+                  "name": "Birth Date",
+                  "locale":"en"
+                }
+             ]
+          },
+          {
+             "path":[
+                "eu.europa.ec.eudi.educational_id.1",
+                "commonName"
+             ],
+             "mandatory":false,
+             "value_type":"string",
+             "source":"user",
+             "display":[
                 {
                   "name": "Birth names of the person",
-                  "locale": "en"            }
-              ]
-            },
-            "mail": {
-              "mandatory": false,
-              "value_type":"string",
-              "source":"user",
-              "display": [
+                  "locale":"en"
+                }
+             ]
+          },
+          {
+             "path":[
+                "eu.europa.ec.eudi.educational_id.1",
+                "mail"
+             ],
+             "mandatory": false,
+             "value_type":"string",
+             "source":"user",
+             "display":[
                 {
                   "name": "User's email address",
                   "locale": "en"            }
-              ]
-            },
-            "eduPersonPrincipalName": {
-              "mandatory": false,
-              "value_type":"string",
-              "source":"issuer",
-              "display": [
+             ]
+          },
+          {
+             "path":[
+                "eu.europa.ec.eudi.educational_id.1",
+                "eduPersonPrincipalName"
+             ],
+             "mandatory":false,
+             "value_type":"string",
+             "source":"issuer",
+             "display":[
                 {
                   "name": "A persistent identifier within the institution",
                   "locale": "en"            }
-              ]
-            },
-            "eduPersonPrimaryAffiliation": {
-              "mandatory": false,
-              "value_type":"string",
-              "source":"user",
-              "display": [
+             ]
+          },
+          {
+             "path":[
+                "eu.europa.ec.eudi.educational_id.1",
+                "eduPersonPrimaryAffiliation"
+             ],
+             "mandatory":false,
+             "value_type":"string",
+             "source":"user",
+             "display":[
                 {
                   "name": "Main role at the institution",
-                  "locale": "en"            }
-              ]
-            },
-            "eduPersonAffiliation": {
-              "mandatory": false,
-              "value_type":"string",
-              "source":"user",
-              "display": [
+                  "locale": "en"
+                }
+             ]
+          },
+          {
+             "path":[
+                "eu.europa.ec.eudi.educational_id.1",
+                "eduPersonAffiliation"
+             ],
+             "mandatory": false,
+             "value_type":"string",
+             "source":"user",
+             "display": [
                 {
                   "name": "List of all roles (student, staff, etc.)",
                   "locale": "en"            }
-              ]
-            },
-            "eduPersonScopedAffiliation": {
+             ]
+          },
+          {
+             "path":[
+                "eu.europa.ec.eudi.educational_id.1",
+                 "eduPersonScopedAffiliation"
+	     ],
               "mandatory": true,
-              "value_type":"string",
-              "source":"user",
-              "display": [
+             "value_type":"string",
+             "source":"user",
+             "display":[
                 {
                   "name": "Roles with institutional context",
-                  "locale": "en"            }
-              ]
-            },
-            "eduPersonAssurance": {
-              "mandatory": false,
-              "value_type":"string",
-              "source":"user",
-              "display": [
+                  "locale": "en"
+                }
+             ]
+          },
+          {
+             "path":[
+                "eu.europa.ec.eudi.educational_id.1",
+                "eduPersonAssurance"
+             ],
+             "mandatory":false,
+             "value_type":"string",
+             "source":"user",
+             "display":[
                 {
                   "name": "Identity assurance levels meeting REFEDS framework standards",
-                  "locale": "en"            }
-              ]
-            }
+                  "locale":"en"
+                }
+             ]
           }
-        }
-      }
+       ],
+       "issuer_config":{
+          "issuing_authority":"Test PID issuer",
+          "organization_id":"EUDI Wallet Reference Implementation",
+          "validity":90,
+          "organization_name":"Test PID issuer",
+          "namespace":"eu.europa.ec.eudi.educational_id.1"
+       }
     }
+ }
