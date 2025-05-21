@@ -10,7 +10,7 @@ This setup assumes two devices (one Android, one Linux).
 
 ### This repo (issuer)
 
-1. Switch to branch "local-deploy-v2".
+1. Switch to branch "local-deploy-v3".
 
 2. Run `./setup-issuer.sh` to setup the issuer (e.g., set up virtual
    environment, install dependencies, generate self-signed certificate
