@@ -31,6 +31,9 @@ function install_certificates() {
     if [ -f "${LOCAL_ROOT_CA}" ]; then
         sudo cp "${LOCAL_ROOT_CA}" /etc/eudiw/pid-issuer/cert/
     fi
+
+    openssl genrsa -out private_nonce_key.pem 4096
+    sudo cp private_nonce_key.pem /etc/eudiw/pid-issuer/privKey/nonce_rsa4096.pem
 }
 
 function generate_config_file()
