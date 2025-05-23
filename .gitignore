@@ -204,9 +204,6 @@ app/tests/output.xml
 app/tests/report.html
 log
 
-# IP file
-.config.ip
-
 # Local keys, regenerated on server startup
 app/static/jwks.json
 app/private/cookie_jwks.json
