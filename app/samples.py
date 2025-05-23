@@ -100,4 +100,12 @@ def inject_sample_data(json_data: dict) -> dict:
             print(f"Sample profile input found: {profile}")
             profile.update(ERIKA_MUSTERMAN_PHOTOID2)
             print(f"Sample mutated: {profile}")
+
+    for namespace in ["eu.europa.ec.eudi.pid.1", "org.iso.18013.5.1"]:
+        if namespace in data and "nationality" in data[namespace]:
+            current_nationality = data[namespace]["nationality"]
+            if isinstance(current_nationality, str):
+                data[namespace]["nationality"] = [current_nationality]
+
+
     return data
