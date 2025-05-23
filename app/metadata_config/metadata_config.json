@@ -1,12 +1,12 @@
 {
-   "credential_issuer":"https://dev.issuer.eudiw.dev",
+   "credential_issuer":"https://snf-74864.ok-kno.grnetcloud.net:5600",
    "authorization_servers":[
-      "https://dev.issuer.eudiw.dev/oidc"
+      "https://snf-74864.ok-kno.grnetcloud.net:5600/oidc"
    ],
-   "credential_endpoint":"https://dev.issuer.eudiw.dev/credential",
-   "nonce_endpoint":"https://dev.issuer.eudiw.dev/nonce",
-   "deferred_credential_endpoint":"https://dev.issuer.eudiw.dev/deferred_credential",
-   "notification_endpoint":"https://dev.issuer.eudiw.dev/notification",
+   "credential_endpoint":"https://snf-74864.ok-kno.grnetcloud.net:5600/credential",
+   "nonce_endpoint":"https://snf-74864.ok-kno.grnetcloud.net:5600/nonce",
+   "deferred_credential_endpoint":"https://snf-74864.ok-kno.grnetcloud.net:5600/deferred_credential",
+   "notification_endpoint":"https://snf-74864.ok-kno.grnetcloud.net:5600/notification",
    "batch_credential_issuance":{
       "batch_size":100
    },
@@ -55,7 +55,7 @@
          "name":"Digital Credentials Issuer",
          "locale":"en",
          "logo":{
-            "uri":"https://dev.issuer.eudiw.dev/ic-logo.png",
+            "uri":"https://snf-74864.ok-kno.grnetcloud.net:5600/ic-logo.png",
             "alt_text":"EU Digital Identity Wallet Logo"
          }
       }
