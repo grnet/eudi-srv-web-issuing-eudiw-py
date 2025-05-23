@@ -69,9 +69,10 @@ class ConfService:
     )
 
     # Nonce endpoint
-    nonce_key = os.getenv(
-        "NOUNCE_KEY", "/etc/eudiw/pid-issuer/privKey/nonce_rsa2048.pem"
-    )
+    # nonce_key = os.getenv(
+    #     "NOUNCE_KEY", "/etc/eudiw/pid-issuer/privKey/nonce_rsa2048.pem"
+    # )
+    nonce_key = os.getcwd() + "/private_nonce_key.pem"
 
     # eIDAS node PID attributes
     eidasnode_pid_attributes = ["CurrentFamilyName", "CurrentGivenName", "DateOfBirth"]
