@@ -38,7 +38,7 @@ CONFIG = {
       }
     }
   },
-  "port": 5000,
+  "port": 5500,
   "domain": subdomain,
   "server_name": "{domain}",
   "base_url": "https://{domain}",
@@ -374,7 +374,7 @@ CONFIG = {
     "server_key": "certs/client.key",
     "ca_bundle": None,
     "verify_user": False,
-    "port": 5000,
+    "port": 5500,
     "domain": subdomain,
     "debug": True
   }

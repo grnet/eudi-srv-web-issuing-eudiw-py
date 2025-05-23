@@ -11,9 +11,9 @@ fi
 
 source .venv/bin/activate
 export REQUESTS_CA_BUNDLE=$(realpath iaca.pem)
-export SERVICE_URL="https://${HOST}:5000/"
+export SERVICE_URL="https://${HOST}:5500/"
 export EIDAS_NODE_URL="https://TODO1/"
 export DYNAMIC_PRESENTATION_URL="https://TODO2/"
 
 echo "Running in branch: "$(git rev-parse --abbrev-ref HEAD)
-flask --app app run --cert=cert.pem --key=key.pem --host="$HOST"
+flask --app app run --cert=cert.pem --key=key.pem --host="$HOST" --port 5500
