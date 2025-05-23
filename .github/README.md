@@ -34,7 +34,7 @@ This setup assumes two devices (one Android, one Linux).
 
 ## Use
 
-1. Linux device: choose a credential type to issue (`https://<IP>:5000/credential_offer_choice`)
+1. Linux device: choose a credential type to issue (`https://<IP>:5500/credential_offer_choice`)
    and continue to generate a QR code for a credential.
 
 2. Scan the QR code with the Android app. When prompted, use the Form Country (FC).

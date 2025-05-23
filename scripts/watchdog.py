@@ -8,7 +8,7 @@ from subprocess import Popen
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-DEFAULT_HOST = "https://snf-74864.ok-kno.grnetcloud.net:5000"
+DEFAULT_HOST = "https://snf-74864.ok-kno.grnetcloud.net:5500"
 DEFAULT_TIMEOUT = 5
 
 proc = None
