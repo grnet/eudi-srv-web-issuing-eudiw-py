@@ -405,7 +405,7 @@ class ConfService:
             "eu.europa.ec.eudi.hiid_mdoc",
             "eu.europa.ec.eudi.tax_mdoc",
             "eu.europa.ec.eudi.msisdn_mdoc",
-            #"eu.europa.ec.eudi.educational_id_mdoc", 
+            "eu.europa.ec.eudi.educational_id_mdoc",
         ],
         "country_selection": [
             "eu.europa.ec.eudi.loyalty_mdoc",
@@ -432,7 +432,7 @@ class ConfService:
             "eu.europa.ec.eudi.pda1_sd_jwt_vc",
             "eu.europa.ec.eudi.ehic_sd_jwt_vc",
             "org.iso.18013.5.1.reservation_mdoc",
-            #"eu.europa.ec.eudi.educational_id_mdoc",
+            "eu.europa.ec.eudi.educational_id_mdoc",
         ],
     }
 
