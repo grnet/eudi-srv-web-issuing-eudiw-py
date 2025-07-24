@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-if [ "$1" == "" ]; then
-    echo "Usage: ./create-issuer-mdl-cert.sh <DOMAIN>"
+if [ "$1" == "" ] || [ "$2" == "" ]; then
+    echo "Usage: ./create-issuer-mdl-cert.sh <DOMAIN> <PORT>"
     echo "Creates a certificate for mDL issuance"
     exit
 fi
@@ -16,12 +16,20 @@ CSR="$1.csr"
 rm -f ${CSR}
 echo "[ req ]
 distinguished_name = req_distinguished_name
+req_extensions = v3_req
 x509_extensions = v3_ca  # Section to use for cert extensions
 
 [ req_distinguished_name ]
 CN = $1
 O = GRNET
 C = GR
+
+[ v3_req ]
+subjectAltName = @alt_names
+
+[ alt_names ]
+URI.1 = https://$1:$2
+DNS.1 = $1
 
 [ v3_ca ]
 basicConstraints = CA:FALSE
@@ -30,6 +38,7 @@ authorityKeyIdentifier = keyid,issuer:always
 extendedKeyUsage = 1.0.18013.5.1.2
 crlDistributionPoints = URI:http://83.212.72.114:8082/crl.pem
 keyUsage = digitalSignature
+subjectAltName = @alt_names
 " > eudi-mdl-cert.conf
 
 openssl req -new -sha256 -key ${KEY} \
