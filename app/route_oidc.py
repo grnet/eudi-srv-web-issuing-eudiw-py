@@ -1133,7 +1133,7 @@ def create_qr_code(credential_offer) -> tuple[str, str]:
     qrcode.save(out, kind="png", scale=3)
 
     qr_img_base64 = "data:image/png;base64," + base64.b64encode(out.getvalue()).decode("utf-8")
-
+    cfgservice.app_logger.info(uri)
     return uri, qr_img_base64
 
 
