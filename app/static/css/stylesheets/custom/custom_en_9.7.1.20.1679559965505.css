@@ -3667,3 +3667,9 @@ body.contrast .announcement-box.announcement-warn div.icon {
 .pt-10 {
     padding-top: 10px
 }
+
+.govgr-logo {
+    width: 200px;
+    max-height:100%;
+    max-width:100%;
+}
