@@ -21,4 +21,5 @@ export VERIFY_USER_ENDPOINT=https://snf-74864.ok-kno.grnetcloud.net:5601/verify/
 export AUTH_SERVER_INTERNAL_URL=https://snf-74864.ok-kno.grnetcloud.net:5601
 
 echo "Running in branch: "$(git rev-parse --abbrev-ref HEAD)
-flask --app app run --cert=cert.pem --key=key.pem --host="$HOST" --port ${FLASK_RUN_PORT}
+# flask --app app run --cert=cert.pem --key=key.pem --host="$HOST" --port ${FLASK_RUN_PORT}
+flask --app app run --cert=/etc/letsencrypt/live/snf-74864.ok-kno.grnetcloud.net/fullchain.pem --key=/etc/letsencrypt/live/snf-74864.ok-kno.grnetcloud.net/privkey.pem --host="$HOST" --port ${FLASK_RUN_PORT}
