@@ -17,4 +17,5 @@ export DYNAMIC_PRESENTATION_URL="https://TODO2/"
 export FLASK_RUN_PORT=5500
 
 echo "Running in branch: "$(git rev-parse --abbrev-ref HEAD)
-flask --app app run --cert=cert.pem --key=key.pem --host="$HOST" --port ${FLASK_RUN_PORT}
+# flask --app app run --cert=cert.pem --key=key.pem --host="$HOST" --port ${FLASK_RUN_PORT}
+flask --app app run --cert=/etc/letsencrypt/live/snf-74864.ok-kno.grnetcloud.net/fullchain.pem --key=/etc/letsencrypt/live/snf-74864.ok-kno.grnetcloud.net/privkey.pem --host="$HOST" --port ${FLASK_RUN_PORT}
