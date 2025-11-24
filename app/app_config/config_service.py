@@ -141,6 +141,7 @@ class ConfService:
             "eu.europa.ec.eudi.tax_mdoc",
             "eu.europa.ec.eudi.msisdn_mdoc",
             "eu.europa.ec.eudi.educational_id_mdoc",
+            "eu.europa.ec.eudi.alliance_id_mdoc",
         ],
         "country_selection": [
             "eu.europa.ec.eudi.loyalty_mdoc",
@@ -176,6 +177,7 @@ class ConfService:
             "eu.europa.ec.eudi.age_verification_mdoc_passport"
             "eu.europa.ec.eudi.educational_id_mdoc",
             "eu.europa.ec.eudi.educational_id_mdoc",
+            "eu.europa.ec.eudi.alliance_id_mdoc",
         ],
     }
 
