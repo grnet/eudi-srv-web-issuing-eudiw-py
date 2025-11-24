@@ -146,6 +146,7 @@ class ConfCountries:
                 "eu.europa.ec.eudi.employee_mdoc",
                 "eu.europa.ec.eudi.pid_mdoc_deferred",
                 "eu.europa.ec.eudi.educational_id_mdoc",
+                "eu.europa.ec.eudi.alliance_id_mdoc",
             ],
         },
         "GR": {
