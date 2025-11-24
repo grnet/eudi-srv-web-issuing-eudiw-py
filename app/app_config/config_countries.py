@@ -94,6 +94,7 @@ class ConfCountries:
                 "org.iso.18013.5.1.reservation_mdoc",
                 "eu.europa.ec.eudi.educational_id_mdoc",
                 "eu.europa.ec.eudi.alliance_id_mdoc",
+                "eu.europa.ec.eudi.my_academic_id_mdoc",
             ],
             "dynamic_R2": cfgserv.service_url + "dynamic/form_R2",
         },
