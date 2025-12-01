@@ -48,6 +48,7 @@ from misc import doctype2vct, getSubClaims, urlsafe_b64encode_nopad, vct2doctype
 from app_config.config_countries import ConfCountries as cfgcountries
 from app_config.config_service import ConfService as cfgservice
 from app_config.config_secrets import revocation_api_key
+from samples import inject_photo
 
 
 def mdocFormatter(data, credential_metadata, country, device_publickey):
@@ -119,10 +120,28 @@ def mdocFormatter(data, credential_metadata, country, device_publickey):
 
     namespace = credential_metadata["issuer_config"]["namespace"]
 
-    if "portrait" in data[namespace]:
+    inject_photo(data)
+    if data[namespace].get("portrait"):
         data[namespace]["portrait"] = base64.urlsafe_b64decode(
             data[namespace]["portrait"]
         )
+
+    if namespace == "eu.europa.ec.eudi.pid.1":
+        print(f"Processing namespace {namespace}...")
+        keys_to_pop = {
+            key for key in data[namespace].keys()
+            if data[namespace][key] is None
+        }
+        for key in keys_to_pop:
+            data[namespace].pop(key)
+
+    if "place_of_birth" in data[namespace]:
+        print("Fixing place_of_birth")
+        data[namespace]["place_of_birth"] = {
+            "region": "Athens",
+            "country": "Athens ",
+            "locality": "Athens",
+        }
 
     if "user_pseudonym" in data[namespace]:
         data[credential_metadata["doctype"]]["user_pseudonym"] = data[
