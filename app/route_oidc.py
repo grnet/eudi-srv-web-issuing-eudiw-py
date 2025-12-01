@@ -837,7 +837,7 @@ def par_endpointv2():
     client_secret = str(uuid.uuid4())
     session["redirect_uri"] = redirect_uri
     current_app.server.get_endpoint("registration").process_request_authorization(
-        client_id=client_id, client_secret=client_secret, redirect_uri=redirect_uri
+        client_id=client_id, redirect_uri=redirect_uri
     )
 
     response = service_endpoint(current_app.server.get_endpoint("pushed_authorization"))
