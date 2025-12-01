@@ -49,6 +49,7 @@ from app_config.config_countries import ConfCountries as cfgcountries
 from app_config.config_service import ConfService as cfgservice
 
 from app import session_manager
+from samples import inject_photo
 
 
 def mdocFormatter(
@@ -103,6 +104,7 @@ def mdocFormatter(
 
     namespace = credential_metadata["issuer_config"]["namespace"]
 
+    inject_photo(data)
     images_to_decode = [
         "image",
         "portrait",
@@ -115,6 +117,23 @@ def mdocFormatter(
     for image in images_to_decode:
         if image in data[namespace]:
             data[namespace][image] = base64.urlsafe_b64decode(data[namespace][image])
+
+    if namespace == "eu.europa.ec.eudi.pid.1":
+        print(f"Processing namespace {namespace}...")
+        keys_to_pop = {
+            key for key in data[namespace].keys()
+            if data[namespace][key] is None
+        }
+        for key in keys_to_pop:
+            data[namespace].pop(key)
+
+    if "place_of_birth" in data[namespace]:
+        print("Fixing place_of_birth")
+        data[namespace]["place_of_birth"] = {
+            "region": "Athens",
+            "country": "Athens ",
+            "locality": "Athens",
+        }
 
     if "user_pseudonym" in data[namespace]:
         data[credential_metadata["doctype"]]["user_pseudonym"] = data[
