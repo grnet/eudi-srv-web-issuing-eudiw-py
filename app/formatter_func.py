@@ -191,9 +191,14 @@ def mdocFormatter(data, credential_metadata, country, device_publickey):
         revocation=revocation_json,
     )
 
-    return urlsafe_b64encode_nopad(
+    mdoc_b64 = urlsafe_b64encode_nopad(
         mdoci.dump()
     )  # base64.urlsafe_b64encode(mdoci.dump()).decode("utf-8")
+
+    with open("credential.out", "w") as f:
+        f.write(mdoc_b64)
+
+    return mdoc_b64
 
 
 def cbor2elems(mdoc):
