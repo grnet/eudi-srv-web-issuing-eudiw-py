@@ -413,6 +413,9 @@ def create_app(test_config=None):
 
     app.server = server """
 
+    print("Routes:")
+    print(app.url_map)
+
     return app
 
 
