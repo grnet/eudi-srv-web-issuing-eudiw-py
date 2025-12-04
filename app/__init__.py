@@ -198,6 +198,9 @@ def create_app(test_config=None):
 
     app.logger.info(" - DEBUG - FLASK started")
 
+    print("Routes:")
+    print(app.url_map)
+
     return app
 
 
