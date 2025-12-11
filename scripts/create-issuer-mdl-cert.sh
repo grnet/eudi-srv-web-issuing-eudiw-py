@@ -67,3 +67,12 @@ echo ${DER}
 echo ${KEY}
 echo ${PUB_JWK}
 echo ${JWK}
+
+echo "== Sanity check =="
+openssl x509 -inform der -in ${DER} -out sanity.crt.pem
+
+openssl x509 -in sanity.crt.pem -pubkey -noout > sanity_cert_pubkey.pem
+openssl pkey -in ${KEY} -pubout > sanity_key_pubkey.pem
+
+diff sanity_cert_pubkey.pem sanity_key_pubkey.pem
+echo "OK"
