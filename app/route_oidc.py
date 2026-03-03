@@ -459,9 +459,27 @@ from authlib.jose import JsonWebKey
 
 
 def decode_verify_attestation(jwt_raw):
-    claims = verify_jwt_with_x5c(jwt_raw=jwt_raw)
-
-    return claims
+    header = jwt.get_unverified_header(jwt_raw)
+    if header.get("jwk"):
+        jwk_dict = header["jwk"]
+        alg = header.get("alg", "ES256")
+        x = jwk_dict["x"]
+        y = jwk_dict["y"]
+        x_bytes = base64.urlsafe_b64decode(x + "=" * (4 - len(x) % 4))
+        y_bytes = base64.urlsafe_b64decode(y + "=" * (4 - len(y) % 4))
+        public_numbers = ec.EllipticCurvePublicNumbers(
+            x=int.from_bytes(x_bytes, "big"),
+            y=int.from_bytes(y_bytes, "big"),
+            curve=ec.SECP256R1(),
+        )
+        public_key = public_numbers.public_key()
+        claims = jwt.decode(
+            jwt_raw, public_key, algorithms=[alg],
+            options={"verify_aud": False},
+        )
+        return claims
+    else:
+        return verify_jwt_with_x5c(jwt_raw=jwt_raw)
 
 import jwt
 def generate_credentials(credential_request, session_id):
