@@ -482,6 +482,61 @@ def decode_verify_attestation(jwt_raw):
         return verify_jwt_with_x5c(jwt_raw=jwt_raw)
 
 import jwt
+
+
+@oidc.route("/oidc_session_init", methods=["POST"])
+def oidc_session_init():
+    """Initialize a credential issuer session for headless wallet flows.
+
+    Called by the OIDC AS after headless auto-authentication to ensure the
+    credential issuer has a session entry before the credential request arrives.
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "missing JSON body"}), 400
+    session_id = data.get("session_id")
+    if not session_id:
+        return jsonify({"error": "missing session_id"}), 400
+
+    authorization_details = data.get("authorization_details") or []
+    scope = data.get("scope")
+    jws_token = data.get("jws_token")
+
+    credentials_requested = []
+    for cred in authorization_details:
+        if "credential_configuration_id" in cred:
+            cid = cred["credential_configuration_id"]
+            if cid not in credentials_requested:
+                credentials_requested.append(cid)
+        elif "vct" in cred:
+            from app.misc import vct2id
+            vid = vct2id(cred["vct"])
+            if vid not in credentials_requested:
+                credentials_requested.append(vid)
+
+    # If scope provided and no authorization_details yet, derive them
+    if scope and not authorization_details:
+        from app.misc import scope2details
+        scope_elements = scope.split()
+        authorization_details = scope2details(scope_elements)
+        for cred in authorization_details:
+            if "credential_configuration_id" in cred:
+                cid = cred["credential_configuration_id"]
+                if cid not in credentials_requested:
+                    credentials_requested.append(cid)
+
+    session_manager.add_session(
+        session_id=session_id,
+        jws_token=jws_token,
+        scope=scope,
+        authorization_details=authorization_details,
+        credentials_requested=credentials_requested,
+        country="FC",
+        user_data=cfgservice.sample_data.copy(),
+    )
+    return jsonify({"status": "ok"})
+
+
 def generate_credentials(credential_request, session_id):
     formatter_request = {}
 
