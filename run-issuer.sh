@@ -12,6 +12,9 @@ else
 fi
 
 source .venv/bin/activate
+export ISSUER_CONFIG_PATH=$(realpath config_issuer_backend.yaml)
+
+
 export REQUESTS_CA_BUNDLE=$(realpath iaca.pem)
 export SERVICE_URL="https://${HOST}:5600/"
 export EIDAS_NODE_URL="https://TODO1/"
