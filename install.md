@@ -68,10 +68,10 @@ To run the EUDIW Issuer, please follow these simple steps (some of which may hav
 
 6. Setup configuration
 
-   -  Copy ```app/config_issuer_backend_example.yaml``` to ```etc/issuer_config/config_issuer_backend.yaml``` and modify variables.
+   -  Copy ```app/config_issuer_backend_example.yaml``` to ```/etc/issuer_config/config_issuer_backend.yaml``` and modify variables.
 
    ```shell
-   cp app/config_issuer_backend_example.yaml etc/issuer_config/config_issuer_backend.yaml
+   cp app/config_issuer_backend_example.yaml /etc/issuer_config/config_issuer_backend.yaml
    ```
 
    Configuration location can be changed using environment variable ISSUER_CONFIG_PATH
