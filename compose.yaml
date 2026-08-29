@@ -29,6 +29,10 @@ name: eudiw-issuer
 services:
 
   issuer:
+    # Fixed so the name does not change when this stack is run on its own
+    # versus merged into a larger project (compose otherwise derives it from
+    # the project name). Scripts and `docker exec` can rely on it.
+    container_name: eudiw-issuer
     build:
       context: .
       dockerfile: Dockerfile
@@ -103,7 +107,6 @@ volumes:
 
 networks:
   eudiw-dev:
-    # Created by the OIDC stack. External so both projects share one network
-    # rather than each creating its own.
-    external: true
+    # Shared with the authorization server stack. The explicit name is what
+    # makes them the same network rather than two project-prefixed ones.
     name: eudiw-dev
