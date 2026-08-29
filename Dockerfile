@@ -34,12 +34,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libjpeg62-turbo \
     zlib1g \
+    gettext-base \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy compiled packages from builder
 COPY --from=builder /install /usr/local
 
 COPY . .
+
+# Renders the config template before starting the app, since the app's own
+# loader does no variable expansion. See docker/entrypoint.sh.
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 RUN mkdir -p /etc/eudiw/pid-issuer-dev/cert/ \
              /etc/eudiw/pid-issuer-dev/privKey/

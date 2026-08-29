@@ -1,0 +1,109 @@
+# Local development: the PID issuer.
+#
+#   1. In the eudi-srv-issuer-oidc-py checkout:  ./pki/bootstrap.sh
+#   2. In the eudi-srv-issuer-oidc-py checkout:  docker compose up -d
+#   3. Here:                                     ./pki/bootstrap.sh
+#   4. Here:                                     docker compose up --build
+#
+# See DOCKER.md. The two repositories are joined by a Docker network name and a
+# volume name, never by a path, so they can be cloned anywhere.
+#
+# The authorization server stack must be running first. It owns the shared
+# network and the dev CA volume, both declared `external` below, starting this
+# stack on its own fails with "network eudiw-dev not found", which is the
+# intended signal rather than a silent half-working stack.
+#
+# Two PKIs are in play here and conflating them is the classic mistake:
+#   eudiw-pki volume    TLS, who the server is on the wire
+#   pki/out/eudiw       mdoc document signing, who signed the credential
+# The first is shared with the OIDC stack; the second is issuer-only and comes
+# from the EU reference test material in api_docs/test_tokens/.
+#
+# Note on the filename: upstream's docker-compose.yml (published ghcr.io image,
+# host bind mounts) is still here and untouched. Compose prefers compose.yaml,
+# so a bare `docker compose up` runs this one. To run upstream's:
+#   docker compose -f docker-compose.yml up
+
+name: eudiw-issuer
+
+services:
+
+  issuer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: eudiw-issuer:dev
+    # entrypoint.sh renders the config template and repoints the metadata, then
+    # execs this command.
+    entrypoint: ["/usr/local/bin/entrypoint.sh"]
+    command:
+      - flask
+      - --app
+      - app:create_app
+      - run
+      - --host=0.0.0.0
+      - --port=5600
+      - --cert=/etc/eudiw/tls/issuer.crt
+      - --key=/etc/eudiw/tls/issuer.key
+    ports:
+      - "${ISSUER_PORT:-5600}:5600"
+    environment:
+      # Where the app reads its config, and where the entrypoint renders it to.
+      ISSUER_CONFIG_TEMPLATE: /tmp/config.yaml.template
+      ISSUER_CONFIG_PATH: /config.yaml
+
+      # Substituted into the config template. These are what the *wallet* dials,
+      # so they are host-visible URLs, not container names.
+      ISSUER_PUBLIC_URL: "https://localhost:${ISSUER_PORT:-5600}"
+      OIDC_PUBLIC_URL: "https://localhost:${OIDC_PORT:-5601}"
+      FRONTEND_PUBLIC_URL: "https://localhost:${FRONTEND_PORT:-5602}"
+      STATUSLIST_PUBLIC_URL: "https://localhost:${STATUSLIST_PORT:-5603}"
+
+      # Host written into app/metadata_config/*.json by the entrypoint; those
+      # files hardcode it and the app has no setting for it.
+      ISSUER_HOST: "localhost"
+
+      # Server-to-server hop, over the shared network rather than the host. The
+      # oidc leaf carries a SAN for this name, so the call verifies against the
+      # dev CA. The app already prefers internal_url over base_url
+      # (app/route_oidc.py:295), it was simply never set.
+      OIDC_INTERNAL_URL: "https://oidc:5601"
+
+      # Trust the dev CA for outbound HTTPS. This pair is what makes
+      # verify=False unnecessary: requests reads the first, most other
+      # OpenSSL-based clients the second.
+      REQUESTS_CA_BUNDLE: /etc/eudiw/tls/ca-bundle.pem
+      SSL_CERT_FILE: /etc/eudiw/tls/ca-bundle.pem
+
+      FLASK_DEBUG: "${FLASK_DEBUG:-1}"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      # Config template, rendered at start and never written back.
+      - ./docker/config.yaml.template:/tmp/config.yaml.template:ro
+      # mdoc document-signing material, laid out by pki/bootstrap.sh.
+      - ./pki/out/eudiw:/etc/eudiw/pid-issuer-dev:ro
+      # Shared TLS material, the same volume the OIDC stack mounts.
+      - eudiw-pki:/etc/eudiw/tls:ro
+      # Live code reload. The image still contains the app, so the stack runs
+      # unchanged in CI where this mount is absent.
+      - ./app:/app/app
+      # ...but NOT metadata_config: the entrypoint rewrites the issuer URL in
+      # those JSONs at startup, and with the bind mount above that edit would
+      # land on the developer's tracked files. An anonymous volume keeps the
+      # image's copy in place, so the rewrite stays inside the container.
+      - /app/app/metadata_config
+    networks: [eudiw-dev]
+    restart: unless-stopped
+
+volumes:
+  eudiw-pki:
+    # Created and populated by the OIDC repo's pki/bootstrap.sh.
+    external: true
+    name: eudiw-pki
+
+networks:
+  eudiw-dev:
+    # Created by the OIDC stack. External so both projects share one network
+    # rather than each creating its own.
+    external: true
+    name: eudiw-dev

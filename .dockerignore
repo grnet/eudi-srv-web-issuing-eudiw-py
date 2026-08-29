@@ -1,11 +1,70 @@
+## Build context exclusions.
+##
+## Two jobs here. The usual one is keeping the image small. The important one is
+## keeping key material and deployment config OUT of the image: several private
+## keys and a populated config are tracked on this branch, and a plain `COPY . .`
+## bakes them into a layer that is then pushed to a registry. Everything the
+## container needs at runtime arrives by bind mount or env instead, see
+## deploy/README.md.
+##
+## Anything added here that the app genuinely needs at runtime must be mounted.
+
+# ── VCS / CI ────────────────────────────────────────────────────────────────
 .git
+.gitignore
 .github
+
+# ── Python build artefacts ──────────────────────────────────────────────────
 **/__pycache__
-**/*.pyc
-**/*.pyo
+**/*.py[cod]
+*.egg-info
 .venv
 venv
-*.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# ── Key material ────────────────────────────────────────────────────────────
+# Tracked on this branch (iaca.key, credential_private_key.pem,
+# private_nonce_key.pem, ...) and generated locally under pki/. Neither
+# belongs in an image. The runtime set is mounted at /etc/eudiw.
+*.pem
+*.key
+*.der
+*.crt
+*.csr
+*.p12
+*.jks
+pki/
+certs/
+
+# ── Deployment config ───────────────────────────────────────────────────────
+# config_issuer_backend.yaml is tracked and holds real hostnames/credentials.
+# The container reads its config from ISSUER_CONFIG_PATH (a mount) instead.
+config_issuer_backend.yaml
+config_issuer_backend.*.yaml
+app/app_config/config_secrets.py
 .env
+.env.*
+!.env.example
+deploy/
+
+# ── Host-specific operational scripts ───────────────────────────────────────
+# These drive the okeanos VM (hardcoded snf-* hostnames, sudo, certbot paths).
+# They are irrelevant inside a container and actively misleading if present.
+run-issuer.sh
+setup-issuer.sh
+resolve-ip.sh
+scripts/setup-cert.sh
+scripts/setup-venv.sh
+scripts/watchdog.py
+
+# ── Local noise ─────────────────────────────────────────────────────────────
 *.md
+!README.md
 tests/
+flask_session/
+nohup.out
+.DS_Store
+.vscode
+.idea
