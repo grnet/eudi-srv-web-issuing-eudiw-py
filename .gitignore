@@ -232,3 +232,8 @@ app/private/cookie_jwks.json
 
 # Emacs backup files
 *~
+
+# Local development Docker stack (pki/bootstrap.sh).
+# Generated document-signing material. Regenerate, never commit.
+pki/out/
+.env
