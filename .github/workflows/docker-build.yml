@@ -69,6 +69,13 @@ jobs:
             type=ref,event=pr
             type=sha,format=long
             type=raw,value=latest,enable={{is_default_branch}}
+          # Without these the registry falls back to .github/README.md, which
+          # documents the virtualenv workflow this image exists to replace.
+          # `source` is also what links the package to its repository.
+          labels: |
+            org.opencontainers.image.description=PID issuer for the EUDI wallet (GRNET fork). Containerised for local development and deployment; see DOCKER.md.
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.licenses=Apache-2.0
 
       - name: Build and push
         uses: docker/build-push-action@v6.15.0
