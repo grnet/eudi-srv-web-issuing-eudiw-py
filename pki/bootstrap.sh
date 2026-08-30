@@ -38,10 +38,29 @@ mv -f "$PRIVKEY_DIR/$DS.cert.der" "$CERT_DIR/"
 # signer in the reference setup, so link the one we unpacked into both names
 # rather than shipping duplicate copies.
 DS_KEY="$(find "$PRIVKEY_DIR" -maxdepth 1 -name "$DS*.key.pem" -print -quit)"
+
+# The shipped key is an encrypted PKCS#8 blob wrapped in PKCS#12 bag attributes,
+# and its password is its own friendlyName. The application hands the configured
+# password straight to load_pem_private_key(), which needs bytes rather than the
+# string YAML produces, so an encrypted key cannot be used as-is. Decrypting once
+# here keeps metadata_signing_key_password null and the loader happy.
+#
+# This is EU reference *test* material, published with the reference
+# implementation. No real key is involved.
+DS_PASSWORD="pid-ds-0002"
+openssl pkey -in "$DS_KEY" -passin "pass:$DS_PASSWORD" -out "$PRIVKEY_DIR/$DS.decrypted.pem" 2>/dev/null
+
+# The signed-metadata path loads the certificate with load_pem_x509_certificate,
+# so it needs PEM even though the archive ships DER. The mdoc signing path reads
+# the DER form, so both are kept.
+openssl x509 -inform der -in "$CERT_DIR/$DS.cert.der" -out "$CERT_DIR/$DS.cert.pem"
+
 for country in EU UT; do
-  cp -f "$DS_KEY"              "$PRIVKEY_DIR/${DS}_${country}.pem"
-  cp -f "$CERT_DIR/$DS.cert.der" "$CERT_DIR/${DS}_${country}_cert.der"
+  cp -f "$PRIVKEY_DIR/$DS.decrypted.pem" "$PRIVKEY_DIR/${DS}_${country}.pem"
+  cp -f "$CERT_DIR/$DS.cert.der"         "$CERT_DIR/${DS}_${country}_cert.der"
+  cp -f "$CERT_DIR/$DS.cert.pem"         "$CERT_DIR/${DS}_${country}_cert.pem"
 done
+rm -f "$PRIVKEY_DIR/$DS.decrypted.pem"
 
 echo "==> Installing IACA root"
 gunzip -c "$REPO/api_docs/test_tokens/IACA-token/PIDIssuerCAUT01.pem.gz" \

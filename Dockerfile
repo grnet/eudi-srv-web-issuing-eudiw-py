@@ -52,6 +52,9 @@ RUN mkdir -p /etc/eudiw/pid-issuer-dev/cert/ \
 
 ENV FLASK_APP="app:create_app"
 
-EXPOSE 5000
+# The issuer listens on 5600, matching the deployed layout. compose.yaml passes
+# the port and TLS material explicitly; this default keeps the image runnable on
+# its own.
+EXPOSE 5600
 
-CMD ["flask", "run", "--host=0.0.0.0"]
+CMD ["flask", "run", "--host=0.0.0.0", "--port=5600"]

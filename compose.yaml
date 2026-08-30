@@ -53,7 +53,7 @@ services:
       - "${ISSUER_PORT:-5600}:5600"
     environment:
       # Where the app reads its config, and where the entrypoint renders it to.
-      ISSUER_CONFIG_TEMPLATE: /tmp/config.yaml.template
+      CONFIG_TEMPLATE: /tmp/config.yaml.template
       ISSUER_CONFIG_PATH: /config.yaml
 
       # Substituted into the config template. These are what the *wallet* dials,
@@ -97,6 +97,16 @@ services:
       # image's copy in place, so the rewrite stays inside the container.
       - /app/app/metadata_config
     networks: [eudiw-dev]
+    # The frontend calls this service while it is starting up, so it waits on
+    # this check rather than crash-looping until the port answers. Uses the
+    # image's own Python: there is no curl or wget in a slim base.
+    healthcheck:
+      test: ["CMD", "python3", "-c",
+             "import urllib.request,ssl;ctx=ssl.create_default_context(cafile='/etc/eudiw/tls/ca-bundle.pem');urllib.request.urlopen('https://localhost:5600/.well-known/openid-credential-issuer',context=ctx,timeout=5)"]
+      interval: 10s
+      timeout: 8s
+      retries: 12
+      start_period: 40s
     restart: unless-stopped
 
 volumes:

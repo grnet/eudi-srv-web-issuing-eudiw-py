@@ -13,7 +13,7 @@
 
 set -eu
 
-TEMPLATE="${ISSUER_CONFIG_TEMPLATE:-/tmp/config.yaml.template}"
+TEMPLATE="${CONFIG_TEMPLATE:-/tmp/config.yaml.template}"
 RENDERED="${ISSUER_CONFIG_PATH:-/config.yaml}"
 
 if [ -f "$TEMPLATE" ]; then
