@@ -1,19 +1,31 @@
 #!/usr/bin/env bash
 
 if [ -f ".config.hostname" ]; then
-    HOST=$(<.config.hostname)
-elif [ -f ".config.ip" ]; then
-    HOST=$(<.config.ip)
+    HOST=$(cat .config.hostname)
+    TLS="--cert=/etc/letsencrypt/live/${HOST}/fullchain.pem --key=/etc/letsencrypt/live/${HOST}/privkey.pem"
 else
-    echo "Missing server setup, run setup_issuer.sh"
+    echo "WARNING: no file .config.hostname, skipping TLS setup"
+    TLS=
+fi
+
+if [ -f ".config.ip" ]; then
+    IP=$(<.config.ip)
+else
+    echo "Missing server setup: .config.ip"
     exit
 fi
 
 source .venv/bin/activate
 export REQUESTS_CA_BUNDLE=$(realpath iaca.pem)
-export SERVICE_URL="https://${HOST}:5000/"
+export SERVICE_URL="https://${HOST}:5600/"
 export EIDAS_NODE_URL="https://TODO1/"
 export DYNAMIC_PRESENTATION_URL="https://TODO2/"
+export FLASK_RUN_PORT=5600
+export NONCE_KEY=$(realpath private_nonce_key.pem)
+export DEFAULT_FRONTEND_URL=https://snf-74864.ok-kno.grnetcloud.net:5602
+export VERIFY_USER_ENDPOINT=https://snf-74864.ok-kno.grnetcloud.net:5601/verify/user
+export AUTH_SERVER_INTERNAL_URL=https://snf-74864.ok-kno.grnetcloud.net:5601
+export ISSUER_CONFIG_PATH=$(realpath .)/app/config_issuer_backend_grnet.yaml
 
 echo "Running in branch: "$(git rev-parse --abbrev-ref HEAD)
-flask --app app run --cert=cert.pem --key=key.pem --host="$HOST"
+flask --app app run ${TLS} --host="${IP}" --port ${FLASK_RUN_PORT}
