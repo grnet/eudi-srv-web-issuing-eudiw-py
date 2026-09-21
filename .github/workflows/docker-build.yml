@@ -37,15 +37,15 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3.10.0
+        uses: docker/setup-buildx-action@v4.4.1
 
       # Fork PRs cannot read secrets, and unreviewed code should not publish.
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3.4.0
+        uses: docker/login-action@v4.6.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -53,7 +53,7 @@ jobs:
 
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@v5.7.0
+        uses: docker/metadata-action@v6.2.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
@@ -68,7 +68,7 @@ jobs:
             org.opencontainers.image.licenses=Apache-2.0
 
       - name: Build and push
-        uses: docker/build-push-action@v6.15.0
+        uses: docker/build-push-action@v7.4.0
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
