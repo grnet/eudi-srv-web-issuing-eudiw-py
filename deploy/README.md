@@ -157,8 +157,6 @@ on its own. Only `content: ${VAR}` hides the change.
 
 ## Still to sort
 
-- The issuer frontend is not deployed. `FRONTEND_PUBLIC_URL` points at the EU
-  reference instance until it is.
 - Credentials are signed with EU reference test material (`PID-DS-0002`), not
   with a GRNET document signer. Switching means minting one from `WEBUILD/pki/`
   and mounting it instead of the unpacked archive.

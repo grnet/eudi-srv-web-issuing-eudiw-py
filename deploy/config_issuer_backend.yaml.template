@@ -1,8 +1,8 @@
 # Template for config_issuer_backend.yaml, rendered at deploy time.
 #
 # Upstream's app/config_issuer_backend_example.yaml with the deployment-specific
-# values replaced by ${...} placeholders. deploy.sh and the Deploy workflow run
-# envsubst over it and pass the result to compose, which mounts it at
+# values turned into placeholders. deploy.sh and the Deploy workflow run envsubst
+# over it and pass the result to compose, which mounts it at
 # /app/config_issuer_backend.yaml. Nothing is written to the box.
 #
 # Safe to commit: the two real secrets, STATUSLIST_API_KEY and DATABASE_PASSWORD,

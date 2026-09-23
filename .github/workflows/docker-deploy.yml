@@ -149,6 +149,11 @@ jobs:
           export PKI_INIT_B64
 
           # The issuer config, substituted here rather than in the container.
+          # stack.env holds the URLs the template substitutes. Sourced because
+          # envsubst reads the environment, not COMPOSE_ENV_FILES.
+          set -a
+          . deploy/stack.env
+          set +a
           export DATABASE_NAME="${DATABASE_NAME:-eudiw_issuer}"
           export DATABASE_USER="${DATABASE_USER:-postgres}"
           ISSUER_CONFIG=$(envsubst < deploy/config_issuer_backend.yaml.template)
