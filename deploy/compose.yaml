@@ -1,29 +1,15 @@
-# Production stack for the EC2 box: the PID issuer, its authorization server,
-# and the Postgres they need.
+# The PID issuer, its authorization server, and their Postgres.
+# See deploy/README.md. Use deploy.sh or the Deploy workflow, not compose
+# directly: both configs are rendered before compose runs.
 #
-# Deployed by .github/workflows/docker-deploy.yml, which points a local compose
-# client at the remote daemon over SSH. The file itself never lands on the
-# server. To run it by hand:
-#
-#   DOCKER_HOST=ssh://target docker compose \
-#     -f deploy/compose.yaml --env-file deploy/stack.env -p eudiw-issuer up -d
-#
-# The edge (nginx-proxy, acme-companion, proxy-net) belongs to
-# eudi-srv-wallet-provider and must be up first.
-#
-# One stack for two services because the dependency runs one way: the issuer
-# calls the OIDC server for /introspection and /verify/user, never the reverse,
-# and the config below holds both their URLs. The OIDC repo publishes its own
-# image and has no deploy/ of its own.
+# proxy-net belongs to eudi-srv-wallet-provider and must be up first.
 
 name: eudiw-issuer
 
 services:
 
   postgres:
-    # 16, matching what install.md and README.md state the issuer was tested
-    # against. The schema in app/db_status_persistence.py uses nothing newer
-    # than 9.4 features, so this is about matching upstream rather than need.
+    # 16, matching what install.md states the issuer was tested against.
     image: postgres:16.14-alpine
     container_name: eudiw-issuer-db
     restart: unless-stopped
@@ -32,13 +18,10 @@ services:
       POSTGRES_USER: ${DATABASE_USER:-postgres}
       POSTGRES_DB: ${DATABASE_NAME:-eudiw_issuer}
     volumes:
-      # /var/lib/postgresql/data is correct up to 17. Postgres 18 changed this
-      # to a single mount at /var/lib/postgresql, which is why the wallet
-      # provider's stack differs here.
+      # Correct up to 17; 18 moved this to /var/lib/postgresql.
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      # CMD, not CMD-SHELL: the shell form takes a single string and drops the
-      # remaining arguments, leaving pg_isready to connect as "root".
+      # CMD, not CMD-SHELL: the shell form drops the arguments.
       test: ["CMD", "pg_isready", "-U", "${DATABASE_USER:-postgres}", "-d", "${DATABASE_NAME:-eudiw_issuer}"]
       interval: 10s
       timeout: 5s
@@ -57,33 +40,33 @@ services:
       VIRTUAL_HOST: ${ISSUER_HOST:?set in stack.env}
       VIRTUAL_PORT: "5000"
       VIRTUAL_PATH: ${OIDC_PATH:?set in stack.env}
-      # Strips the prefix: this app serves its routes at its own root, unlike
-      # the status list which namespaces itself.
+      # Strips the prefix: the app serves at its own root.
       VIRTUAL_DEST: /
       LETSENCRYPT_HOST: ${ISSUER_HOST}
       LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:?set in stack.env}
+    # /app exists in the image, /etc/issuer_config does not.
+    command: ["python3", "server.py", "/app/authorization_config.json"]
     configs:
       - source: oidc-config
-        target: /etc/issuer_config/authorization_config.json
+        target: /app/authorization_config.json
     networks:
-      # proxy-net for the browser, issuer for the server-to-server hop. The
-      # alias is what OIDC_INTERNAL_URL dials.
+      # The alias is what OIDC_INTERNAL_URL dials.
       proxy-net:
       issuer:
         aliases: [oidc]
 
-  # Unpacks the EU reference document-signing material shipped in the image and
-  # generates the two per-deployment keys, into a named volume the issuer mounts
-  # read-only. Idempotent, so it runs on every deploy and does nothing after the
-  # first.
+  # Unpacks the document-signing material into a named volume. Idempotent.
   pki-init:
     image: ${ISSUER_IMAGE:?set by the deploy workflow}
     container_name: eudiw-issuer-pki-init
     restart: "no"
-    entrypoint: ["/bin/sh", "/pki-init.sh"]
-    configs:
-      - source: pki-init
-        target: /pki-init.sh
+    # base64 so compose does not interpolate the script's shell variables.
+    # deploy/pki-init.sh is the source; deploy.sh encodes it.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - echo "$$PKI_INIT_B64" | base64 -d > /tmp/pki-init.sh && sh /tmp/pki-init.sh
+    environment:
+      PKI_INIT_B64: ${PKI_INIT_B64:?set by deploy.sh or the deploy workflow}
     volumes:
       - pki:/etc/eudiw/pid-issuer-dev
     networks:
@@ -107,108 +90,38 @@ services:
       VIRTUAL_DEST: /
       LETSENCRYPT_HOST: ${ISSUER_HOST}
       LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
-      ISSUER_CONFIG_PATH: /etc/issuer_config/config_issuer_backend.yaml
+      # /app exists in the image; /etc/issuer_config does not.
+      ISSUER_CONFIG_PATH: /app/config_issuer_backend.yaml
     configs:
       - source: issuer-config
-        target: /etc/issuer_config/config_issuer_backend.yaml
+        target: /app/config_issuer_backend.yaml
     volumes:
-      # Laid out by pki-init above. Named, not a bind mount: the generated nonce
-      # and credential-request keys must survive a redeploy, and the public JWK
-      # in the issuer's metadata is derived from the latter.
+      # Named: the generated keys must survive a redeploy, and the issuer's
+      # published JWK is derived from credential_request.pem.
       - pki:/etc/eudiw/pid-issuer-dev:ro
     networks:
       - proxy-net
       - issuer
 
 configs:
-  pki-init:
-    file: ./deploy/pki-init.sh
-
-  # Upstream's app/config_issuer_backend_example.yaml with the URLs, credentials
-  # and paths that vary per deployment. Inline rather than a bind mount: compose
-  # interpolates ${...} here on the runner and sends the daemon an expanded
-  # spec, so nothing lands on the box and the secrets never touch its disk.
+  # Rendered from deploy/config_issuer_backend.yaml.template.
   issuer-config:
-    content: |
-      service_url: "${ISSUER_PUBLIC_URL}"
-      wallet_tester_url: "${ISSUER_PUBLIC_URL}"
+    content: ${ISSUER_CONFIG:?rendered by deploy.sh or the deploy workflow}
 
-      revocation:
-        take_url: "${STATUSLIST_PUBLIC_URL}/token_status_list/take"
-        set_url: "${STATUSLIST_PUBLIC_URL}/token_status_list/set"
-        api_key: "${STATUSLIST_API_KEY}"
-        enabled: true
-
-      frontend:
-        default: "5d725b3c-6d42-448e-8bfd-1eff1fcf152d"
-        frontends_config:
-          "5d725b3c-6d42-448e-8bfd-1eff1fcf152d":
-            url: "${FRONTEND_PUBLIC_URL}"
-            metadata_signing_key_path: "/etc/eudiw/pid-issuer-dev/privKey/PID-DS-0002_EU.pem"
-            metadata_access_certificate_path: "/etc/eudiw/pid-issuer-dev/cert/PID-DS-0002_EU_cert.pem"
-            metadata_signing_key_password: null
-
-      authorization_server:
-        base_url: "${OIDC_PUBLIC_URL}"
-        internal_url: "${OIDC_INTERNAL_URL}"
-        user_verify_endpoint: "${OIDC_INTERNAL_URL}/verify/user"
-
-      dynamic_presentation_url: "https://verifier-backend.eudiw.dev/ui/presentations"
-
-      trust_validator:
-        url: "https://trust-validator.eudiw.dev/trust"
-        enabled: true
-
-      status_validator:
-        url: "https://status-validator.issuer.eudiw.dev/status"
-        enabled: true
-
-      credential_offer_scheme: "haip-vci://"
-
-      postgres:
-        host: "postgres"
-        port: 5432
-        dbname: "${DATABASE_NAME:-eudiw_issuer}"
-        user: "${DATABASE_USER:-postgres}"
-        password: "${DATABASE_PASSWORD}"
-
-      logging:
-        backend_path: "/tmp/log_prod/logs.log"
-        log_level: "INFO"
-
-      expiry:
-        revocation_code: 60
-        form: 60
-        session: 60
-
-      keys:
-        nonce_path: "/etc/eudiw/pid-issuer-dev/privKey/nonce_rsa2048.pem"
-        credential_request_path: "/etc/eudiw/pid-issuer-dev/privKey/credential_request.pem"
-
-  # Rendered by deploy/render-oidc-config.py, which merges
-  # deploy/oidc-config.patch.json over the config.json inside the OIDC image.
-  # Four values change; upstream's other 355 lines are used as shipped.
-  #
-  # The deploy workflow and deploy.sh set OIDC_CONFIG_JSON by running that
-  # script. Compose interpolates it here, so nothing lands on the box.
+  # Rendered by deploy/render-oidc-config.py from the OIDC image's own config.
   oidc-config:
     content: |
       ${OIDC_CONFIG_JSON:?run deploy/render-oidc-config.py, see deploy/README.md}
 
 volumes:
-  # Document-signing material. See pki-init above.
   pki:
-
-  # Holds wia_client_status and ka_key_storage_status, created by the issuer at
-  # startup (app/db_status_persistence.py). Attestation status survives a
-  # restart only because of this.
+  # Attestation status, created by the issuer at startup.
   postgres-data:
 
 networks:
-  # Created by eudi-srv-wallet-provider's deploy stack.
   proxy-net:
     external: true
     name: proxy-net
-  # Private to this stack: postgres and the issuer-to-oidc hop.
+  # Private: postgres and the issuer-to-oidc hop.
   issuer:
     name: eudiw-issuer

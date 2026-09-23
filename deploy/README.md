@@ -134,6 +134,27 @@ published image. That is not always the branch tip: the build skips
 markdown-only commits. The workflow has no sibling checkout, so it takes the tag
 as a required input.
 
+## Config changes need a recreate
+
+Compose does not recreate a container when only a config's **content** changes.
+It compares the service definition, and `content: ${VAR}` is textually the same
+whatever `VAR` expands to. So a fix to `stack.env`, `config_issuer_backend.yaml.template`
+or `oidc-config.patch.json` deploys without taking effect, and the container
+keeps running with the old file. The deploy reports success.
+
+    ./deploy.sh                      # image change
+    RECREATE=1 ./deploy.sh           # config change
+
+In the Deploy workflow, tick **Recreate containers even if the image tag is
+unchanged**.
+
+Cost a debugging cycle on the first deploy: the issuer kept crashing on a config
+error that had already been fixed.
+
+The wallet provider's stack is not affected the same way. Its inline configs hold
+literal text, so editing one changes the service definition and compose recreates
+on its own. Only `content: ${VAR}` hides the change.
+
 ## Still to sort
 
 - The issuer frontend is not deployed. `FRONTEND_PUBLIC_URL` points at the EU

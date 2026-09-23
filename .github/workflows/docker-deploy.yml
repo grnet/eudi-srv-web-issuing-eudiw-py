@@ -28,6 +28,14 @@ on:
         description: 'OIDC image tag, e.g. sha-4887aaa0... (grnet/eudi-srv-issuer-oidc-py)'
         required: true
         type: string
+      # Compose does not recreate a container when only a config's content
+      # changes, so a config-only fix is deployed but not picked up. Tick this
+      # when the change is to stack.env or either config template.
+      force_recreate:
+        description: 'Recreate containers even if the image tag is unchanged'
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: deploy
@@ -134,6 +142,22 @@ jobs:
           STATUSLIST_API_KEY: ${{ secrets.STATUSLIST_API_KEY }}
         run: |
           set -euo pipefail
+
+          # Decoded and run by the pki-init container. Encoded so compose does
+          # not interpolate the shell variables inside the script.
+          PKI_INIT_B64=$(base64 -w0 < deploy/pki-init.sh)
+          export PKI_INIT_B64
+
+          # The issuer config, substituted here rather than in the container.
+          export DATABASE_NAME="${DATABASE_NAME:-eudiw_issuer}"
+          export DATABASE_USER="${DATABASE_USER:-postgres}"
+          ISSUER_CONFIG=$(envsubst < deploy/config_issuer_backend.yaml.template)
+          export ISSUER_CONFIG
+          if printf '%s' "$ISSUER_CONFIG" | grep -q '\${'; then
+            echo "::error::unsubstituted variables remain in the issuer config"
+            printf '%s' "$ISSUER_CONFIG" | grep -n '\${'
+            exit 1
+          fi
           for k in DATABASE_PASSWORD STATUSLIST_API_KEY; do
             if [[ -z "${!k:-}" ]]; then
               echo "::error::$k is not set; see deploy/README.md"
@@ -143,8 +167,11 @@ jobs:
 
           export COMPOSE_ENV_FILES=deploy/stack.env
 
+          recreate=""
+          [[ "${{ inputs.force_recreate }}" == "true" ]] && recreate="--force-recreate"
+
           $COMPOSE pull
-          $COMPOSE up -d --remove-orphans
+          $COMPOSE up -d --remove-orphans $recreate
 
       # A green `up -d` only means compose accepted the configuration.
       - name: Verify
