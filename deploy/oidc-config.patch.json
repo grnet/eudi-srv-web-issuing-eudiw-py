@@ -1,0 +1,42 @@
+{
+  "_comment": [
+    "Deploy-time overrides for the OIDC server's config.json, merged over the",
+    "copy inside the image by deploy/render-oidc-config.py.",
+    "",
+    "Only what varies per deployment is here. The rest of upstream's 359-line",
+    "config, the op block and its endpoint definitions, is used unchanged.",
+    "",
+    "idpyoidc expands {domain} itself, so setting `domain` also fixes",
+    "server_name, op.server_info.issuer and webserver.domain."
+  ],
+
+  "domain": "demo.eudiw.grnet.gr/auth",
+  "base_url": "https://demo.eudiw.grnet.gr/auth",
+
+  "_comment_redirect": [
+    "Where the OIDC server sends the browser to pick an authentication method.",
+    "That page is served by the issuer, not by this service, so it carries the",
+    "issuer's prefix."
+  ],
+  "authorization_redirect_url": "https://demo.eudiw.grnet.gr/issuer/auth_choice",
+
+  "op": {
+    "server_info": {
+      "add_ons": {
+        "dpop": {
+          "kwargs": {
+            "_comment": [
+              "DPoP allowlist for the `htu` claim. A token request whose URL is",
+              "not listed is rejected, so this must name the token endpoint as",
+              "the wallet sees it, through the proxy and with the prefix."
+            ],
+            "allowed_htu": [
+              "https://demo.eudiw.grnet.gr/auth/token",
+              "https://demo.eudiw.grnet.gr/issuer/token"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

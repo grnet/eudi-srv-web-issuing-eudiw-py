@@ -1,0 +1,215 @@
+# Deploy to the EC2 box. Manual only, so a push never changes what is running.
+#
+# Drives the remote Docker daemon over SSH: DOCKER_HOST=ssh://target means the
+# runner's compose client controls the server's. The compose file and the
+# environment are read on the runner and never land on the box.
+#
+# Two images, one stack. The OIDC server is built in eudi-srv-issuer-oidc-py and
+# deployed from here, because the issuer calls it and this repository holds the
+# config naming both.
+#
+# The edge (nginx-proxy, acme-companion, proxy-net) belongs to
+# eudi-srv-wallet-provider and must be deployed first.
+
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Issuer image tag (default: sha- tag of this commit)'
+        required: false
+        type: string
+      # No default: the OIDC image is built in another repository, so this
+      # workflow cannot derive a tag from its own commit. `latest` and branch
+      # tags are unreliable here, `latest` only publishes from that repo's
+      # default branch. Use a sha- tag, which every build publishes.
+      oidc_image_tag:
+        description: 'OIDC image tag, e.g. sha-4887aaa0... (grnet/eudi-srv-issuer-oidc-py)'
+        required: true
+        type: string
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  ISSUER_IMAGE_NAME: ${{ github.repository }}
+  OIDC_IMAGE_NAME: grnet/eudi-srv-issuer-oidc-py
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
+      packages: read
+
+    env:
+      DOCKER_HOST: ssh://target
+      COMPOSE: docker compose -f deploy/compose.yaml -p eudiw-issuer
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7.0.1
+
+      - name: Resolve the image tags
+        id: image
+        run: |
+          set -euo pipefail
+          tag="${{ inputs.image_tag }}"
+          [[ -n "$tag" ]] || tag="sha-${{ github.sha }}"
+          echo "issuer=${REGISTRY}/${ISSUER_IMAGE_NAME}:${tag}" >> "$GITHUB_OUTPUT"
+          echo "oidc=${REGISTRY}/${OIDC_IMAGE_NAME}:${{ inputs.oidc_image_tag }}" >> "$GITHUB_OUTPUT"
+          echo "issuer ${REGISTRY}/${ISSUER_IMAGE_NAME}:${tag}"
+          echo "oidc   ${REGISTRY}/${OIDC_IMAGE_NAME}:${{ inputs.oidc_image_tag }}"
+
+      # Authenticated on the runner. The credentials are forwarded to the remote
+      # daemon for the pull, so the box needs no registry login of its own.
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # config and known_hosts are committed under deploy/ssh/: hostnames, ports
+      # and host keys are public data. Only the private key is a secret.
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SSH_KEY:-}" ]]; then
+            echo "::error::SSH_KEY is not set; see deploy/README.md"
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          install -m 600 deploy/ssh/config ~/.ssh/config
+          install -m 644 deploy/ssh/known_hosts ~/.ssh/known_hosts
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/eudiw-deploy
+          chmod 600 ~/.ssh/eudiw-deploy
+          ssh -o BatchMode=yes target 'echo "connected to $(hostname)"'
+
+      # proxy-net comes from the wallet provider's stack. Without it compose
+      # fails outright, which is at least loud, but saying so here is clearer
+      # than a compose error.
+      - name: Preflight
+        run: |
+          set -euo pipefail
+          if docker network inspect proxy-net >/dev/null 2>&1; then
+            echo "ok   proxy-net exists"
+          else
+            echo "::error::proxy-net is missing. Deploy eudi-srv-wallet-provider first."
+            exit 1
+          fi
+
+      # Reads config.json out of the OIDC image and merges the deploy overrides
+      # over it, so upstream's 355 other lines are used as shipped. Runs locally
+      # against the registry, not on the box.
+      - name: Render the OIDC config
+        id: oidc
+        run: |
+          set -euo pipefail
+          docker pull -q "${{ steps.image.outputs.oidc }}"
+          {
+            echo 'json<<OIDC_EOF'
+            DOCKER_HOST= ./deploy/render-oidc-config.py "${{ steps.image.outputs.oidc }}"
+            echo 'OIDC_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      # Compose interpolates ${...} client-side, here on the runner, and sends
+      # the daemon an already-expanded spec. The values only have to exist in
+      # this step's environment; nothing is written to disk on the box.
+      - name: Pull and roll
+        env:
+          ISSUER_IMAGE: ${{ steps.image.outputs.issuer }}
+          OIDC_IMAGE: ${{ steps.image.outputs.oidc }}
+          OIDC_CONFIG_JSON: ${{ steps.oidc.outputs.json }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+          STATUSLIST_API_KEY: ${{ secrets.STATUSLIST_API_KEY }}
+        run: |
+          set -euo pipefail
+          for k in DATABASE_PASSWORD STATUSLIST_API_KEY; do
+            if [[ -z "${!k:-}" ]]; then
+              echo "::error::$k is not set; see deploy/README.md"
+              exit 1
+            fi
+          done
+
+          export COMPOSE_ENV_FILES=deploy/stack.env
+
+          $COMPOSE pull
+          $COMPOSE up -d --remove-orphans
+
+      # A green `up -d` only means compose accepted the configuration.
+      - name: Verify
+        run: |
+          set -uo pipefail
+          fail=0
+
+          echo "── containers ──"
+          for c in eudiw-issuer-db eudiw-oidc eudiw-issuer; do
+            state=""
+            for _ in $(seq 1 18); do
+              state=$(docker inspect -f '{{.State.Status}}' "$c" 2>/dev/null || echo absent)
+              [[ "$state" == "running" ]] && break
+              sleep 5
+            done
+            if [[ "$state" == "running" ]]; then
+              echo "  ok   $c"
+            else
+              echo "  FAIL $c ($state)"
+              docker logs --tail 30 "$c" 2>&1 | sed 's/^/       /' || true
+              fail=1
+            fi
+          done
+
+          echo "── document-signing material ──"
+          if docker exec eudiw-issuer test -s /etc/eudiw/pid-issuer-dev/privKey/PID-DS-0002_EU.pem; then
+            echo "  ok"
+          else
+            echo "  FAIL pki-init did not populate the volume"
+            docker logs eudiw-issuer-pki-init 2>&1 | sed 's/^/       /' || true
+            fail=1
+          fi
+
+          echo "── nginx config valid ──"
+          if docker exec nginx-proxy nginx -t >/dev/null 2>&1; then
+            echo "  ok"
+          else
+            docker exec nginx-proxy nginx -t 2>&1 | sed 's/^/       /'
+            fail=1
+          fi
+
+          host=$(grep -E '^ISSUER_HOST=' deploy/stack.env | cut -d= -f2)
+          check() {
+            code=$(docker run --rm --network proxy-net curlimages/curl:8.11.1 \
+                     -s -o /dev/null -w '%{http_code}' --max-time 10 \
+                     -H "Host: $host" "http://nginx-proxy$1" || echo 000)
+            if [[ "$code" == "$2" ]]; then
+              echo "  ok   $1 returned $code"
+            else
+              echo "  FAIL $1 returned $code, expected $2"
+              fail=1
+            fi
+          }
+
+          echo "── routing ──"
+          # The proxy redirects http to https once a certificate exists, so 301
+          # here means the vhost matched and the request reached the right place.
+          check /issuer/.well-known/openid-credential-issuer 301
+          check /auth/.well-known/openid-configuration 301
+          # Taking new paths on this hostname must not shadow what is already on it.
+          check /wallet-provider/jwks 301
+          check /token_status_list/swagger/ 301
+
+          [[ "$fail" -eq 0 ]] && echo "deploy verified" || { echo "verification failed"; exit 1; }
+
+      - name: Clean up
+        if: always()
+        run: docker image prune -f || true
