@@ -71,6 +71,11 @@ services:
       - echo "$$PKI_INIT_B64" | base64 -d > /tmp/pki-init.sh && sh /tmp/pki-init.sh
     environment:
       PKI_INIT_B64: ${PKI_INIT_B64:?set by deploy.sh or the deploy workflow}
+      # Document signer and IACA certificates; the key is the ds-key secret.
+      DS_CERT_PEM: ${DS_CERT_PEM:?from WEBUILD/pki/leaves/pid-ds-gr-01/pid-ds-gr-01.crt, see deploy/README.md}
+      IACA_PEM: ${IACA_PEM:?from WEBUILD/pki/ca/root-ca-grnet.pem, see deploy/README.md}
+    secrets:
+      - ds-key
     volumes:
       - pki:/etc/eudiw/pid-issuer-dev
     networks:
@@ -96,6 +101,8 @@ services:
       LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
       # /app exists in the image; /etc/issuer_config does not.
       ISSUER_CONFIG_PATH: /app/config_issuer_backend.yaml
+      # Unused by the app: a new signer changes it, so compose recreates the issuer.
+      DS_CERT_SHA256: ${DS_CERT_SHA256:?set by deploy.sh or the deploy workflow}
     configs:
       - source: issuer-config
         target: /app/config_issuer_backend.yaml
@@ -195,6 +202,11 @@ configs:
               default_type application/pkix-crl;
           }
       }
+
+secrets:
+  # Document signer key. A secret, so `docker inspect` does not show it.
+  ds-key:
+    environment: DS_KEY_PEM
 
 volumes:
   pki:

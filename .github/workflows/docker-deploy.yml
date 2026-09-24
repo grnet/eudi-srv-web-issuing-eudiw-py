@@ -152,17 +152,25 @@ jobs:
           # back and compared with WEBUILD/pki. Set with `gh variable set`.
           CRL_PEM: ${{ vars.CRL_PEM }}
           IACA_PEM: ${{ vars.IACA_PEM }}
+          # Document signer: public certificate, secret key.
+          DS_CERT_PEM: ${{ vars.DS_CERT_PEM }}
+          DS_KEY_PEM: ${{ secrets.DS_KEY_PEM }}
         run: |
           set -euo pipefail
 
-          # A CRL signed by a superseded root is served happily and rejected by
-          # every verifier that checks, so refuse to ship one.
-          for k in CRL_PEM IACA_PEM; do
+          for k in CRL_PEM IACA_PEM DS_CERT_PEM; do
             if [[ -z "${!k:-}" ]]; then
               echo "::error::repository variable $k is not set; see deploy/README.md"
               exit 1
             fi
           done
+          if [[ -z "${DS_KEY_PEM:-}" ]]; then
+            echo "::error::repository secret DS_KEY_PEM is not set; see deploy/README.md"
+            exit 1
+          fi
+
+          # A CRL signed by a superseded root is served happily and rejected by
+          # every verifier that checks, so refuse to ship one.
           if ! openssl crl -noout -CAfile <(printf '%s\n' "$IACA_PEM") <<< "$CRL_PEM" 2>/dev/null; then
             echo "::error::CRL_PEM does not verify against IACA_PEM"
             exit 1
@@ -171,6 +179,19 @@ jobs:
           # Served as DER, see the crl service in deploy/compose.yaml.
           CRL_DER_B64=$(openssl crl -outform DER <<< "$CRL_PEM" | base64 -w0)
           export CRL_DER_B64
+
+          # The signer must chain to the IACA and match its key.
+          if ! openssl verify -CAfile <(printf '%s\n' "$IACA_PEM") <(printf '%s\n' "$DS_CERT_PEM") >/dev/null; then
+            echo "::error::DS_CERT_PEM does not verify against IACA_PEM"
+            exit 1
+          fi
+          if [[ "$(openssl pkey -pubout <<< "$DS_KEY_PEM")" != "$(openssl x509 -noout -pubkey <<< "$DS_CERT_PEM")" ]]; then
+            echo "::error::DS_KEY_PEM is not the key of DS_CERT_PEM"
+            exit 1
+          fi
+          echo "signer $(openssl x509 -noout -subject -enddate <<< "$DS_CERT_PEM" | tr '\n' ' ')"
+          DS_CERT_SHA256=$(openssl x509 -noout -fingerprint -sha256 <<< "$DS_CERT_PEM" | cut -d= -f2)
+          export DS_CERT_SHA256
 
           # Decoded and run by the pki-init container. Encoded so compose does
           # not interpolate the shell variables inside the script.
@@ -207,8 +228,32 @@ jobs:
           $COMPOSE pull
           $COMPOSE up -d --remove-orphans $recreate
 
+      # The frontend gets its metadata signed by this issuer once, at startup,
+      # so restart it to pick up the current signer.
+      - name: Restart the frontend
+        run: |
+          set -euo pipefail
+          if ! docker inspect eudiw-frontend >/dev/null 2>&1; then
+            echo "::error::no eudiw-frontend container. Deploy eudi-srv-web-issuing-frontend-eudiw-py first."
+            exit 1
+          fi
+          # The issuer must be up first.
+          for _ in $(seq 1 18); do
+            [[ "$(docker inspect -f '{{.State.Status}}' eudiw-issuer 2>/dev/null)" == "running" ]] && break
+            sleep 5
+          done
+          docker restart eudiw-frontend
+          for _ in $(seq 1 12); do
+            [[ "$(docker inspect -f '{{.State.Status}}' eudiw-frontend)" == "running" ]] && break
+            sleep 5
+          done
+          sleep 5
+          echo "eudiw-frontend $(docker inspect -f '{{.State.Status}}' eudiw-frontend)"
+
       # A green `up -d` only means compose accepted the configuration.
       - name: Verify
+        env:
+          DS_CERT_PEM: ${{ vars.DS_CERT_PEM }}
         run: |
           set -uo pipefail
           fail=0
@@ -230,8 +275,10 @@ jobs:
             fi
           done
 
-          echo "── document-signing material ──"
-          if docker exec eudiw-issuer test -s /etc/eudiw/pid-issuer-dev/privKey/PID-DS-0002_EU.pem; then
+          echo "── document signer ──"
+          # The issuer's key matches DS_CERT_PEM.
+          remote_pub=$(docker exec eudiw-issuer openssl pkey -in /etc/eudiw/pid-issuer-dev/ds/signing.key -pubout 2>/dev/null || true)
+          if [[ -n "$remote_pub" && "$remote_pub" == "$(openssl x509 -noout -pubkey <<< "$DS_CERT_PEM")" ]]; then
             echo "  ok"
           else
             echo "  FAIL pki-init did not populate the volume"
@@ -277,6 +324,42 @@ jobs:
           # And the IACA's download path must redirect: https only.
           pki_path=$(grep -E '^PKI_PATH=' deploy/stack.env | cut -d= -f2)
           check "${pki_path}root-ca-grnet.pem" 301
+
+          echo "── signed metadata ──"
+          # Checked as the wallet does; x5c must be DS_CERT_PEM. PyJWT is in
+          # the issuer's container.
+          frontend=$(grep -E '^FRONTEND_PUBLIC_URL=' deploy/stack.env | cut -d= -f2)
+          md_url="https://${host}/.well-known/openid-credential-issuer/${frontend#https://*/}"
+          md_type=$(curl -s -o /dev/null -w '%{content_type}' --max-time 15 -H 'Accept: application/jwt' "$md_url" || true)
+          if [[ "$md_type" != application/jwt* ]]; then
+            echo "  FAIL $md_url answered '$md_type' to Accept: application/jwt"
+            fail=1
+          elif out=$(curl -s --max-time 15 -H 'Accept: application/jwt' "$md_url" \
+              | docker exec -i eudiw-issuer python3 -c '
+          import base64, sys, jwt
+          from cryptography import x509
+          issuer, expected = sys.argv[1], base64.b64decode(sys.argv[2])
+          token = sys.stdin.read().strip()
+          header = jwt.get_unverified_header(token)
+          leaf = base64.b64decode(header["x5c"][0])
+          alg, typ = header["alg"], header.get("typ")
+          errs = []
+          if typ != "openidvci-issuer-metadata+jwt":
+              errs.append(f"typ is {typ}")
+          if leaf != expected:
+              errs.append("x5c leaf is not DS_CERT_PEM")
+          claims = jwt.decode(token, x509.load_der_x509_certificate(leaf).public_key(), algorithms=[alg])
+          sub, ci = claims.get("sub"), claims.get("credential_issuer")
+          if sub != issuer or ci != issuer:
+              errs.append(f"sub {sub}, credential_issuer {ci}, expected {issuer}")
+          print("; ".join(errs) if errs else f"{alg}, sub {sub}")
+          sys.exit(1 if errs else 0)
+          ' "$frontend" "$(openssl x509 -outform DER <<< "$DS_CERT_PEM" | base64 -w0)" 2>&1); then
+            echo "  ok   $out, x5c is DS_CERT_PEM"
+          else
+            echo "  FAIL $(printf '%s' "$out" | tail -1)"
+            fail=1
+          fi
 
           [[ "$fail" -eq 0 ]] && echo "deploy verified" || { echo "verification failed"; exit 1; }
 

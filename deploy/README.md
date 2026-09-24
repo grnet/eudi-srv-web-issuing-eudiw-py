@@ -24,10 +24,9 @@ here. That repository has a build workflow and no `deploy/`.
 in `eudi-srv-wallet-provider`. The preflight step stops if `proxy-net` is
 missing.
 
-**Nothing else.** Document-signing material is unpacked into a named volume by
-the `pki-init` container from archives that ship in the image, so there is no
-out-of-band step on the box. That differs from the status list, whose signing key
-is a CA-issued leaf that cannot be regenerated.
+**A document signer, from `WEBUILD/pki`.** The `pki-init` container writes it
+into a named volume from what the deploy passes in, so nothing is placed on the
+box by hand. See "The document signer" below.
 
 ## Repository secrets
 
@@ -36,19 +35,23 @@ is a CA-issued leaf that cannot be regenerated.
 | `SSH_KEY` | Private key authorised for `ubuntu@3.69.83.252`. Written to `~/.ssh/eudiw-deploy` on the runner. Paste the whole file, BEGIN and END lines included. |
 | `DATABASE_PASSWORD` | Postgres password for this stack. Generated, not reused. |
 | `STATUSLIST_API_KEY` | `X-Api-Key` the issuer sends to the status list when allocating a revocation index. Must match that service's own `API_key`, currently `test`. |
+| `DS_KEY_PEM` | The document signer's private key, from `WEBUILD/pki/leaves/pid-ds-gr-01/pid-ds-gr-01.key`. See "The document signer" below. |
 
 Everything else is committed in `stack.env`, where it is reviewable in a diff.
 
-Two repository **variables**, not secrets, because both are public and a
+Three repository **variables**, not secrets, because all are public and a
 variable can be read back and compared:
 
 | Variable | What it is |
 | --- | --- |
 | `CRL_PEM` | The CRL, from `WEBUILD/pki/crl/crl.pem`. Refreshed yearly, see "The CRL" below. |
 | `IACA_PEM` | The IACA, from `WEBUILD/pki/ca/root-ca-grnet.pem`. Changes only on a reissue. |
+| `DS_CERT_PEM` | The document signer's certificate, from `WEBUILD/pki/leaves/pid-ds-gr-01/pid-ds-gr-01.crt`. |
 
-    gh variable set CRL_PEM  --repo grnet/eudi-srv-web-issuing-eudiw-py < ../pki/crl/crl.pem
-    gh variable set IACA_PEM --repo grnet/eudi-srv-web-issuing-eudiw-py < ../pki/ca/root-ca-grnet.pem
+    gh variable set CRL_PEM     --repo grnet/eudi-srv-web-issuing-eudiw-py < ../pki/crl/crl.pem
+    gh variable set IACA_PEM    --repo grnet/eudi-srv-web-issuing-eudiw-py < ../pki/ca/root-ca-grnet.pem
+    gh variable set DS_CERT_PEM --repo grnet/eudi-srv-web-issuing-eudiw-py < ../pki/leaves/pid-ds-gr-01/pid-ds-gr-01.crt
+    gh secret set   DS_KEY_PEM  --repo grnet/eudi-srv-web-issuing-eudiw-py < ../pki/leaves/pid-ds-gr-01/pid-ds-gr-01.key
 
 `deploy.sh` does not use them; it reads `WEBUILD/pki` directly.
 
@@ -192,6 +195,58 @@ without a redirect, that the served bytes are the local CRL in DER, and that
 `openssl verify -crl_check -crl_download` passes a leaf, fetching the CRL from
 the leaf's own distribution point.
 
+## The document signer
+
+The PIDs and the frontend's signed metadata are signed by `pid-ds-gr-01`, issued
+from the IACA in `WEBUILD/pki` with `./pki.sh leaf pid-ds-gr-01`. Until
+2026-09-25 they were signed with upstream's reference test signer, `PID-DS-0002`
+under `PID Issuer CA - UT 01`, which expired on Sep 24 2025 and which no wallet
+trusting GRNET could accept.
+
+**How it arrives.** The key is a compose secret, `ds-key`, from `DS_KEY_PEM`, so
+it is a file in `pki-init` rather than something `docker inspect` prints. The
+certificate is in `pki-init`'s environment. `pki-init` writes both to `ds/` in
+the volume on every run, as `signing.key`, `signing.der` (PID signing reads DER)
+and `signing.pem` (the metadata's x5c), and fails if the key is not the
+certificate's. Not into `cert/`: the issuer loads every `*.pem` there as a
+trusted CA, which a signer is not. The IACA does go into `cert/`, so a PID issued
+here verifies when a wallet presents it back to log in.
+
+`deploy.sh` reads `WEBUILD/pki` directly, `DS_NAME` choosing the leaf. Both deploy
+paths refuse a signer that does not chain to the IACA or whose key is not its
+own.
+
+**Signed metadata comes from the frontend.** The EUDI wallet requires signed
+issuer metadata by default (OpenID4VCI 1.0 §12.2.2) and refuses an issuer
+without it, showing "Issuance blocked". As upstream designed it, the frontend is
+the credential issuer a wallet is pointed at: at startup it has its metadata
+signed here, through `/metadata/metadata_signer` with the `frontends_config` key
+and certificate, and serves the JWT to `Accept: application/jwt`. This backend's
+own well-known route is unsigned, so **wallets must use the frontend's URL**,
+`FRONTEND_PUBLIC_URL`, not `ISSUER_PUBLIC_URL`. The credential endpoints it
+advertises are still this backend's.
+
+**The frontend signs once, at startup**, and caches the result. After a deploy
+that changes the signer, restart it (`docker restart eudiw-frontend`) or it
+keeps serving metadata signed by the old one. `deploy.sh` then fetches the
+metadata as the wallet does and checks the x5c is this signer.
+
+**Renewing it**, before Oct 29 2027 (400 days; `deploy.sh` warns a month
+ahead):
+
+    cd ../pki && ./pki.sh leaf pid-ds-gr-01
+    gh variable set DS_CERT_PEM --repo grnet/eudi-srv-web-issuing-eudiw-py < leaves/pid-ds-gr-01/pid-ds-gr-01.crt
+    gh secret set   DS_KEY_PEM  --repo grnet/eudi-srv-web-issuing-eudiw-py < leaves/pid-ds-gr-01/pid-ds-gr-01.key
+    cd ../eudi-srv-web-issuing-eudiw-py && ./deploy.sh
+
+    docker restart eudiw-frontend          # DOCKER_HOST=ssh://aws-gfour
+
+A plain deploy is enough for the issuer. The certificate's fingerprint is in its
+environment as `DS_CERT_SHA256`, unread by the app, so a new signer changes the
+service definition and compose recreates the issuer, which loads its key only at
+startup. The frontend is another stack and needs the restart above. Wallets need
+nothing: they trust the IACA, not the signer.
+
 ## The OIDC config
 
 Upstream's `config.json` is 359 lines and almost all of it is fine as shipped.
@@ -273,8 +328,8 @@ on its own. Only `content: ${VAR}` hides the change.
 
 ## Still to sort
 
-- Credentials are signed with EU reference test material (`PID-DS-0002`), not
-  with a GRNET document signer. Switching means minting one from `WEBUILD/pki/`
-  and mounting it instead of the unpacked archive.
+- `pki-init` still unpacks the reference signer, `PID-DS-0002`, and its CA into
+  the volume. Nothing signs with it any more, but its CA and certificates are in
+  `cert/`, so the issuer still trusts them for presented PIDs.
 - `dynamic_presentation_url`, `trust_validator` and `status_validator` still
   point at EU reference services.

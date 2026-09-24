@@ -33,9 +33,9 @@ frontend:
     "5d725b3c-6d42-448e-8bfd-1eff1fcf152d":
       url: "${FRONTEND_PUBLIC_URL}"
       # Upstream's example points these at a path on its own dev machine.
-      # pki-init lays out the EU reference signer instead.
-      metadata_signing_key_path: "/etc/eudiw/pid-issuer-dev/privKey/PID-DS-0002_EU.pem"
-      metadata_access_certificate_path: "/etc/eudiw/pid-issuer-dev/cert/PID-DS-0002_EU_cert.pem"
+      # GRNET's document signer, from pki-init.
+      metadata_signing_key_path: "/etc/eudiw/pid-issuer-dev/ds/signing.key"
+      metadata_access_certificate_path: "/etc/eudiw/pid-issuer-dev/ds/signing.pem"
       metadata_signing_key_password: null
 
 # ============================================================================
@@ -160,6 +160,8 @@ credential_auth_methods:
 
 # Currently only _default is supported for both keys and custom_modifiers
 # Eventually keys will be separated by frontend and custom_modifiers per credential_configuration_id
+#
+# Every country signs with GRNET's document signer.
 # Connection types supported: oauth or openid
 
 countries:
@@ -169,9 +171,9 @@ countries:
     # Keys and certificates
     keys:
       _default:
-        private_key_path: "/etc/eudiw/pid-issuer-dev/privKey/PID-DS-0002_EU.pem"
+        private_key_path: "/etc/eudiw/pid-issuer-dev/ds/signing.key"
         private_key_password: null
-        certificate_path: "/etc/eudiw/pid-issuer-dev/cert/PID-DS-0002_EU_cert.der"
+        certificate_path: "/etc/eudiw/pid-issuer-dev/ds/signing.der"
 
     supported_credential_ids:
       - "eu.europa.ec.eudi.pid_mdoc"
@@ -198,9 +200,9 @@ countries:
     name: "FormEU"
     keys:
       _default:
-        private_key_path: "/etc/eudiw/pid-issuer-dev/privKey/PID-DS-0002_UT.pem"
+        private_key_path: "/etc/eudiw/pid-issuer-dev/ds/signing.key"
         private_key_password: null
-        certificate_path: "/etc/eudiw/pid-issuer-dev/cert/PID-DS-0002_UT_cert.der"
+        certificate_path: "/etc/eudiw/pid-issuer-dev/ds/signing.der"
 
     un_distinguishing_sign: "FC"
 
@@ -240,9 +242,9 @@ countries:
 
     keys:
       _default:
-        private_key_path: "/etc/eudiw/pid-issuer-dev/privKey/PID-DS-0002_PT.pem"
+        private_key_path: "/etc/eudiw/pid-issuer-dev/ds/signing.key"
         private_key_password: null
-        certificate_path: "/etc/eudiw/pid-issuer-dev/cert/PID-DS-0002_PT_cert.der"
+        certificate_path: "/etc/eudiw/pid-issuer-dev/ds/signing.der"
 
     un_distinguishing_sign: "P"
 
@@ -273,9 +275,9 @@ countries:
 
     keys:
       _default:
-        private_key_path: "/etc/eudiw/pid-issuer-dev/privKey/PID-DS-0002_EE.pem"
+        private_key_path: "/etc/eudiw/pid-issuer-dev/ds/signing.key"
         private_key_password: null
-        certificate_path: "/etc/eudiw/pid-issuer-dev/cert/PID-DS-0002_EE_cert.der"
+        certificate_path: "/etc/eudiw/pid-issuer-dev/ds/signing.der"
 
     supported_credential_ids:
       - "eu.europa.ec.eudi.pid_mdoc"

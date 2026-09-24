@@ -9,8 +9,8 @@
 # scripts in interop_event_tools, which mint a new CA on every run and must stay
 # a deliberate ceremony.
 #
-# Everything here is EU reference *test* material published with the reference
-# implementation, except the two generated keys, which are per-deployment.
+# The reference archives are EU *test* material; the config signs with GRNET's
+# document signer, passed in by the deploy. The generated keys are per-deployment.
 set -eu
 
 OUT="${PKI_OUT:-/etc/eudiw/pid-issuer-dev}"
@@ -59,6 +59,27 @@ else
     gunzip -c "$TOKENS/IACA-token/PIDIssuerCAUT01.pem.gz" > "$CERT_DIR/PIDIssuerCAUT01.pem"
 fi
 
+# GRNET's document signer: signs the PIDs and the frontend's metadata. Rewritten
+# on every run. In ds/, not cert/, which the issuer loads as trusted CAs.
+DS_DIR="$OUT/ds"
+DS_KEY_FILE="${DS_KEY_FILE:-/run/secrets/ds-key}"
+[ -s "$DS_KEY_FILE" ] || { echo "pki-init: no document-signer key at $DS_KEY_FILE" >&2; exit 1; }
+[ -n "${DS_CERT_PEM:-}" ] || { echo "pki-init: DS_CERT_PEM is not set" >&2; exit 1; }
+[ -n "${IACA_PEM:-}" ] || { echo "pki-init: IACA_PEM is not set" >&2; exit 1; }
+mkdir -p "$DS_DIR"
+printf '%s\n' "$DS_CERT_PEM" > "$DS_DIR/signing.pem"
+openssl x509 -in "$DS_DIR/signing.pem" -outform der -out "$DS_DIR/signing.der"
+# Compose writes the secret without its final newline; put it back.
+printf '%s\n' "$(cat "$DS_KEY_FILE")" > "$DS_DIR/signing.key"
+if [ "$(openssl pkey -in "$DS_DIR/signing.key" -pubout)" != "$(openssl x509 -in "$DS_DIR/signing.pem" -noout -pubkey)" ]; then
+    echo "pki-init: the document-signer key does not belong to its certificate" >&2
+    exit 1
+fi
+echo "pki-init: document signer $(openssl x509 -in "$DS_DIR/signing.pem" -noout -subject)"
+
+# Trust our IACA for PIDs presented back to the issuer.
+printf '%s\n' "$IACA_PEM" > "$CERT_DIR/root-ca-grnet.pem"
+
 # Generated, not shipped: these are per-deployment and must survive a redeploy,
 # which is why the volume is named rather than anonymous. Regenerating the
 # credential-request key changes the public JWK advertised in the issuer
@@ -74,7 +95,8 @@ if [ ! -f "$PRIVKEY_DIR/credential_request.pem" ]; then
     openssl ecparam -name prime256v1 -genkey -noout -out "$PRIVKEY_DIR/credential_request.pem"
 fi
 
-chmod 644 "$PRIVKEY_DIR"/* "$CERT_DIR"/*
+chmod 644 "$PRIVKEY_DIR"/* "$CERT_DIR"/* "$DS_DIR"/*
 echo "pki-init: ready"
+ls "$DS_DIR" | sed 's/^/  ds\//'
 ls "$CERT_DIR" | sed 's/^/  cert\//'
 ls "$PRIVKEY_DIR" | sed 's/^/  privKey\//'
