@@ -274,6 +274,9 @@ jobs:
           # edge's plain-http exception in eudi-srv-wallet-provider is missing.
           crl_path=$(grep -E '^CRL_PATH=' deploy/stack.env | cut -d= -f2)
           check "${crl_path}crl.pem" 200
+          # And the IACA's download path must redirect: https only.
+          pki_path=$(grep -E '^PKI_PATH=' deploy/stack.env | cut -d= -f2)
+          check "${pki_path}root-ca-grnet.pem" 301
 
           [[ "$fail" -eq 0 ]] && echo "deploy verified" || { echo "verification failed"; exit 1; }
 

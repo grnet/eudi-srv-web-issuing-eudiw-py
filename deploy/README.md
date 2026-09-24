@@ -133,8 +133,14 @@ It also changes what every issued token names as its issuer.
 
 The `crl` service is stock nginx serving two public files:
 
-    http://demo.eudiw.grnet.gr/revocation/crl.pem            the CRL, DER
-    http://demo.eudiw.grnet.gr/revocation/root-ca-grnet.pem  the IACA, PEM
+    http://demo.eudiw.grnet.gr/revocation/crl.pem      the CRL, DER
+    https://demo.eudiw.grnet.gr/pki/root-ca-grnet.pem  the IACA, PEM, https only
+
+The IACA was under `/revocation/` until 2026-09-24. It moved because a trust
+anchor is not revocation data, and because the plain-http exception covers the
+whole `/revocation/` prefix: a certificate you are about to trust should not
+come over plain http. `PKI_PATH` is outside that exception, so it redirects
+like every other path, and `deploy.sh` checks that it does.
 
 The first URL is not ours to choose. It is the `crlDistributionPoints` of the
 IACA and of every certificate under it, signed in, so `CRL_PATH` in `stack.env`

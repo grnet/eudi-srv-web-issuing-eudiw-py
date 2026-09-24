@@ -119,11 +119,17 @@ services:
     expose:
       - "80"
     environment:
-      VIRTUAL_HOST: ${ISSUER_HOST}
-      VIRTUAL_PORT: "80"
-      VIRTUAL_PATH: ${CRL_PATH:?set in stack.env}
-      # No VIRTUAL_DEST: the files sit under the prefix, so this https route and
-      # the edge's http one forward the same URI unchanged.
+      # Two paths: the CRL, and the IACA for partners. No prefix stripping: the
+      # files sit under the prefixes, so this https route and the edge's http
+      # one forward the same URI unchanged.
+      VIRTUAL_HOST_MULTIPORTS: |-
+        ${ISSUER_HOST}:
+          "${CRL_PATH:?set in stack.env}":
+            port: 80
+            dest: "${CRL_PATH}"
+          "${PKI_PATH:?set in stack.env}":
+            port: 80
+            dest: "${PKI_PATH}"
       #
       # Deliberately no HTTPS_METHOD. nginx-proxy applies it per hostname, taking
       # the first container that sets it, so noredirect here would drop the https
@@ -148,10 +154,11 @@ services:
     entrypoint: ["/bin/sh", "-ec"]
     command:
       - |
-        d=/usr/share/nginx/html${CRL_PATH}
-        mkdir -p "$$d"
-        printf '%s' "$$CRL_DER_B64" | base64 -d > "$$d/crl.pem"
-        printf '%s\n' "$$IACA_PEM" > "$$d/root-ca-grnet.pem"
+        crl=/usr/share/nginx/html${CRL_PATH}
+        pki=/usr/share/nginx/html${PKI_PATH}
+        mkdir -p "$$crl" "$$pki"
+        printf '%s' "$$CRL_DER_B64" | base64 -d > "$$crl/crl.pem"
+        printf '%s\n' "$$IACA_PEM" > "$$pki/root-ca-grnet.pem"
         exec nginx -g 'daemon off;'
     configs:
       - source: crl-nginx
