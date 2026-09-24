@@ -331,5 +331,14 @@ on its own. Only `content: ${VAR}` hides the change.
 - `pki-init` still unpacks the reference signer, `PID-DS-0002`, and its CA into
   the volume. Nothing signs with it any more, but its CA and certificates are in
   `cert/`, so the issuer still trusts them for presented PIDs.
-- `dynamic_presentation_url`, `trust_validator` and `status_validator` still
-  point at EU reference services.
+- **Wallet attestations: no revocation check, and weak trust on the backend.**
+  EU's validators reject our wallet provider's and status list's certificates,
+  so both are off. The OIDC server trusts wallet attestations by the wallet
+  provider's certificate, fetched from its `/jwks` and mounted into
+  `oidc_trusted_attesters/` (`oidc-config.patch.json`). The backend has no such
+  option: with `trust_validator.enabled: false` it accepts a key attestation
+  from any signer. Neither checks revocation. To restore both, run our own
+  trust and status validators (`eu-digital-identity-wallet/eudi-srv-trust-validator`)
+  with GRNET's anchors, including the status list's signer, and point all four
+  URLs at them.
+- `dynamic_presentation_url` still points at an EU reference service.

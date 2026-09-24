@@ -57,13 +57,15 @@ intended_use_id:
 registration_certificate_jwt:
 
 # WUA trust validator url, available at https://github.com/eu-digital-identity-wallet/eudi-srv-trust-validator
+# Both off: EU's validators reject our wallet provider's and status list's
+# certificates. Until we run our own, see deploy/README.md, "Still to sort".
 trust_validator:
   url: "https://trust-validator.eudiw.dev/trust"
-  enabled: true
+  enabled: false
 
 status_validator:
   url: "https://status-validator.issuer.eudiw.dev/status"
-  enabled: true
+  enabled: false
 
 # ============================================================================
 # SCHEMA CONFIGURATION

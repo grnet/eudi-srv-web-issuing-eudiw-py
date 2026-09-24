@@ -220,6 +220,16 @@ jobs:
             fi
           done
 
+          # The wallet provider's certificate, trusted for wallet attestations.
+          if ! WALLET_PROVIDER_CERT_PEM=$(curl -sf --max-time 15 "$WALLET_PROVIDER_JWKS_URL" \
+              | python3 -c 'import json,sys; print(json.load(sys.stdin)["keys"][0]["x5c"][0])' \
+              | base64 -d | openssl x509 -inform der); then
+            echo "::error::no certificate at $WALLET_PROVIDER_JWKS_URL. Is the wallet provider up?"
+            exit 1
+          fi
+          WALLET_PROVIDER_CERT_SHA256=$(openssl x509 -noout -fingerprint -sha256 <<< "$WALLET_PROVIDER_CERT_PEM" | cut -d= -f2)
+          export WALLET_PROVIDER_CERT_PEM WALLET_PROVIDER_CERT_SHA256
+
           export COMPOSE_ENV_FILES=deploy/stack.env
 
           recreate=""
@@ -283,6 +293,18 @@ jobs:
           else
             echo "  FAIL pki-init did not populate the volume"
             docker logs eudiw-issuer-pki-init 2>&1 | sed 's/^/       /' || true
+            fail=1
+          fi
+
+          echo "── trusted wallet attester ──"
+          set -a; . deploy/stack.env; set +a
+          expected=$(curl -sf --max-time 15 "$WALLET_PROVIDER_JWKS_URL" \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin)["keys"][0]["x5c"][0])' \
+            | base64 -d | openssl x509 -inform der)
+          if [[ -n "$expected" && "$(docker exec eudiw-oidc cat /etc/eudiw/pid-issuer-dev/oidc_trusted_attesters/wallet-provider.pem 2>/dev/null)" == "$expected" ]]; then
+            echo "  ok"
+          else
+            echo "  FAIL the OIDC server's trusted attester is not the wallet provider's certificate"
             fail=1
           fi
 

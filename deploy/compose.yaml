@@ -44,6 +44,9 @@ services:
       VIRTUAL_DEST: /
       LETSENCRYPT_HOST: ${ISSUER_HOST}
       LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:?set in stack.env}
+      # Unused by the app: a new wallet provider certificate changes it, so
+      # compose recreates the server.
+      WALLET_PROVIDER_CERT_SHA256: ${WALLET_PROVIDER_CERT_SHA256:?set by deploy.sh or the deploy workflow}
     # /app exists in the image, /etc/issuer_config does not.
     command: ["python3", "server.py", "/app/authorization_config.json"]
     configs:
@@ -53,6 +56,9 @@ services:
       # routes send this file as-is and config.json never reaches it.
       - source: oidc-metadata
         target: /app/openid-configuration.json
+      # The trusted wallet attester, in trusted_attesters_path.
+      - source: wallet-provider-cert
+        target: /etc/eudiw/pid-issuer-dev/oidc_trusted_attesters/wallet-provider.pem
     networks:
       # The alias is what OIDC_INTERNAL_URL dials.
       proxy-net:
@@ -202,6 +208,10 @@ configs:
               default_type application/pkix-crl;
           }
       }
+
+  # The wallet provider's signing certificate, from its /jwks.
+  wallet-provider-cert:
+    content: ${WALLET_PROVIDER_CERT_PEM:?set by deploy.sh or the deploy workflow}
 
 secrets:
   # Document signer key. A secret, so `docker inspect` does not show it.

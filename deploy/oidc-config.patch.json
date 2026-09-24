@@ -22,6 +22,20 @@
 
   "op": {
     "server_info": {
+      "endpoint": {
+        "token": {
+          "kwargs": {
+            "_comment": [
+              "Wallet attestations: trust the wallet provider's certificate,",
+              "mounted by compose, instead of EU's trust validator, which does",
+              "not know it. Revocation is off: EU's status validator rejects our",
+              "status list's signer. Both until we run our own validators."
+            ],
+            "trust_validator_url": null,
+            "status_validator_url": null
+          }
+        }
+      },
       "add_ons": {
         "dpop": {
           "kwargs": {
