@@ -140,8 +140,29 @@ jobs:
           OIDC_CONFIG_JSON: ${{ steps.oidc.outputs.json }}
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
           STATUSLIST_API_KEY: ${{ secrets.STATUSLIST_API_KEY }}
+          # Variables, not secrets: both are public, and a variable can be read
+          # back and compared with WEBUILD/pki. Set with `gh variable set`.
+          CRL_PEM: ${{ vars.CRL_PEM }}
+          IACA_PEM: ${{ vars.IACA_PEM }}
         run: |
           set -euo pipefail
+
+          # A CRL signed by a superseded root is served happily and rejected by
+          # every verifier that checks, so refuse to ship one.
+          for k in CRL_PEM IACA_PEM; do
+            if [[ -z "${!k:-}" ]]; then
+              echo "::error::repository variable $k is not set; see deploy/README.md"
+              exit 1
+            fi
+          done
+          if ! openssl crl -noout -CAfile <(printf '%s\n' "$IACA_PEM") <<< "$CRL_PEM" 2>/dev/null; then
+            echo "::error::CRL_PEM does not verify against IACA_PEM"
+            exit 1
+          fi
+          echo "CRL $(openssl crl -noout -nextupdate <<< "$CRL_PEM")"
+          # Served as DER, see the crl service in deploy/compose.yaml.
+          CRL_DER_B64=$(openssl crl -outform DER <<< "$CRL_PEM" | base64 -w0)
+          export CRL_DER_B64
 
           # Decoded and run by the pki-init container. Encoded so compose does
           # not interpolate the shell variables inside the script.
@@ -185,7 +206,7 @@ jobs:
           fail=0
 
           echo "── containers ──"
-          for c in eudiw-issuer-db eudiw-oidc eudiw-issuer; do
+          for c in eudiw-issuer-db eudiw-oidc eudiw-issuer eudiw-crl; do
             state=""
             for _ in $(seq 1 18); do
               state=$(docker inspect -f '{{.State.Status}}' "$c" 2>/dev/null || echo absent)
@@ -239,6 +260,11 @@ jobs:
           # Taking new paths on this hostname must not shadow what is already on it.
           check /wallet-provider/jwks 301
           check /token_status_list/swagger/ 301
+          # The one path that must NOT redirect: the IACA names this URL over
+          # plain http, and a JVM will not follow http to https. 301 means the
+          # edge's plain-http exception in eudi-srv-wallet-provider is missing.
+          crl_path=$(grep -E '^CRL_PATH=' deploy/stack.env | cut -d= -f2)
+          check "${crl_path}crl.pem" 200
 
           [[ "$fail" -eq 0 ]] && echo "deploy verified" || { echo "verification failed"; exit 1; }
 

@@ -39,6 +39,19 @@ is a CA-issued leaf that cannot be regenerated.
 
 Everything else is committed in `stack.env`, where it is reviewable in a diff.
 
+Two repository **variables**, not secrets, because both are public and a
+variable can be read back and compared:
+
+| Variable | What it is |
+| --- | --- |
+| `CRL_PEM` | The CRL, from `WEBUILD/pki/crl/crl.pem`. Refreshed monthly, see "The CRL" below. |
+| `IACA_PEM` | The IACA, from `WEBUILD/pki/ca/root-ca-grnet.pem`. Changes only on a reissue. |
+
+    gh variable set CRL_PEM  --repo grnet/eudi-srv-web-issuing-eudiw-py < ../pki/crl/crl.pem
+    gh variable set IACA_PEM --repo grnet/eudi-srv-web-issuing-eudiw-py < ../pki/ca/root-ca-grnet.pem
+
+`deploy.sh` does not use them; it reads `WEBUILD/pki` directly.
+
 Nothing keeps `STATUSLIST_API_KEY` in step with the status list's copy. Changing
 one without the other means every credential issuance fails at the revocation
 call.
@@ -54,6 +67,7 @@ told apart by path:
 | `/wallet-provider/` | wallet provider |
 | `/issuer/` | this issuer |
 | `/auth/` | the OIDC server |
+| `/revocation/` | the CRL, in this stack too; see "The CRL" below |
 
 `VIRTUAL_DEST=/` strips the prefix, so both apps serve at their own root and are
 unaware of it. The issuer rewrites its own published metadata at startup by
@@ -75,6 +89,61 @@ nginx-proxy names a path-routed upstream.
 Changing `ISSUER_PATH` or `OIDC_PATH` here means recomputing those hashes there:
 
     printf '%s' "/issuer/" | sha1sum
+
+## The CRL
+
+The `crl` service is stock nginx serving two public files:
+
+    http://demo.eudiw.grnet.gr/revocation/crl.pem            the CRL, DER
+    http://demo.eudiw.grnet.gr/revocation/root-ca-grnet.pem  the IACA, PEM
+
+The first URL is not ours to choose. It is the `crlDistributionPoints` of the
+IACA and of every certificate under it, signed in, so `CRL_PATH` in `stack.env`
+cannot change without reissuing the whole PKI. It lives in this stack because
+the IACA is the root above this issuer's document signer; the issuer itself
+never fetches it.
+
+Three things about it are deliberate and look wrong.
+
+**It is DER, at a URL ending in `.pem`.** RFC 5280 §4.2.1.13 requires a single
+DER-encoded CRL at an http distribution point. The name comes from gfour's
+server, which served PEM, and is now permanent. Served PEM, openssl fails with
+`missing asn1 encoding` and Go refuses it; Java accepts either. `Content-Type`
+is `application/pkix-crl`, per RFC 2585. The source stays PEM, in
+`WEBUILD/pki` and in `CRL_PEM`, and the deploy converts it.
+
+**It is served over plain http, and must not redirect.** CRLs are http by
+convention, being signed objects, and a JVM verifier will not follow an http to
+https redirect: `HttpURLConnection` returns the 301 and stops, checked. **Do not
+set `HTTPS_METHOD=noredirect` on this container** to get that. nginx-proxy
+applies it per hostname, taking the first container that sets it, so it would
+drop the redirect and HSTS for every service on the host. The exception is a
+port-80 server block in `eudi-srv-wallet-provider`'s compose, which must be
+deployed first. Without it, the http URL returns 301 and the deploy fails its
+check.
+
+**It arrives as environment variables, not configs.** Compose recreates a
+container when its environment changes but not when a config's content does, so
+this way a CRL refresh rolls out on a plain `./deploy.sh` and restarts only this
+container. The DER travels base64-encoded and is decoded at start.
+
+Both deploy paths refuse a CRL that does not verify against the IACA. That is
+the failure already live on gfour's `:5607`, whose CRL is signed by the
+superseded root.
+
+### Refreshing it, monthly
+
+`nextUpdate` is 30 days after issue; past it, verifiers treat the CRL as stale.
+`deploy.sh` warns when fewer than 7 days remain.
+
+    cd ../pki && ./pki.sh crl
+    gh variable set CRL_PEM --repo grnet/eudi-srv-web-issuing-eudiw-py < crl/crl.pem
+    cd ../eudi-srv-web-issuing-eudiw-py && ./deploy.sh
+
+`deploy.sh` then checks what a verifier would: that the http URL answers 200
+without a redirect, that the served bytes are the local CRL in DER, and that
+`openssl verify -crl_check -crl_download` passes a leaf, fetching the CRL from
+the leaf's own distribution point.
 
 ## The OIDC config
 
