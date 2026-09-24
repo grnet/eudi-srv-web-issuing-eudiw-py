@@ -132,7 +132,7 @@ services:
       #
       # Environment rather than configs on purpose: compose recreates a container
       # when its environment changes but not when a config's content does, so
-      # this way a monthly CRL refresh rolls out on a plain deploy, and only this
+      # this way a CRL refresh rolls out on a plain deploy, and only this
       # container restarts.
       CRL_DER_B64: ${CRL_DER_B64:?converted from WEBUILD/pki/crl/crl.pem, see deploy/README.md}
       IACA_PEM: ${IACA_PEM:?from WEBUILD/pki/ca/root-ca-grnet.pem, see deploy/README.md}

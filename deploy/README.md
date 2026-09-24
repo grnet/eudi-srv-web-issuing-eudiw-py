@@ -44,7 +44,7 @@ variable can be read back and compared:
 
 | Variable | What it is |
 | --- | --- |
-| `CRL_PEM` | The CRL, from `WEBUILD/pki/crl/crl.pem`. Refreshed monthly, see "The CRL" below. |
+| `CRL_PEM` | The CRL, from `WEBUILD/pki/crl/crl.pem`. Refreshed yearly, see "The CRL" below. |
 | `IACA_PEM` | The IACA, from `WEBUILD/pki/ca/root-ca-grnet.pem`. Changes only on a reissue. |
 
     gh variable set CRL_PEM  --repo grnet/eudi-srv-web-issuing-eudiw-py < ../pki/crl/crl.pem
@@ -131,10 +131,12 @@ Both deploy paths refuse a CRL that does not verify against the IACA. That is
 the failure already live on gfour's `:5607`, whose CRL is signed by the
 superseded root.
 
-### Refreshing it, monthly
+### Refreshing it, yearly
 
-`nextUpdate` is 30 days after issue; past it, verifiers treat the CRL as stale.
-`deploy.sh` warns when fewer than 7 days remain.
+The current one runs to **Sep 22 2027**. `nextUpdate` is a year after issue;
+past it, verifiers treat the CRL as stale. `deploy.sh` warns when fewer than 30
+days remain. Why a year, and why the IACA key is not in GitHub so a workflow
+could do it, is in `WEBUILD/pki/README.md`.
 
     cd ../pki && ./pki.sh crl
     gh variable set CRL_PEM --repo grnet/eudi-srv-web-issuing-eudiw-py < crl/crl.pem
