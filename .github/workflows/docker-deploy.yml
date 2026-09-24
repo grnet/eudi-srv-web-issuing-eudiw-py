@@ -129,6 +129,13 @@ jobs:
             DOCKER_HOST= ./deploy/render-oidc-config.py "${{ steps.image.outputs.oidc }}"
             echo 'OIDC_EOF'
           } >> "$GITHUB_OUTPUT"
+          # The server's published metadata, which config.json does not reach.
+          set -a; . deploy/stack.env; set +a
+          {
+            echo 'metadata<<OIDC_EOF'
+            DOCKER_HOST= ./deploy/render-oidc-metadata.py "${{ steps.image.outputs.oidc }}" "$OIDC_PUBLIC_URL"
+            echo 'OIDC_EOF'
+          } >> "$GITHUB_OUTPUT"
 
       # Compose interpolates ${...} client-side, here on the runner, and sends
       # the daemon an already-expanded spec. The values only have to exist in
@@ -138,6 +145,7 @@ jobs:
           ISSUER_IMAGE: ${{ steps.image.outputs.issuer }}
           OIDC_IMAGE: ${{ steps.image.outputs.oidc }}
           OIDC_CONFIG_JSON: ${{ steps.oidc.outputs.json }}
+          OIDC_METADATA_JSON: ${{ steps.oidc.outputs.metadata }}
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
           STATUSLIST_API_KEY: ${{ secrets.STATUSLIST_API_KEY }}
           # Variables, not secrets: both are public, and a variable can be read
@@ -256,7 +264,8 @@ jobs:
           # The proxy redirects http to https once a certificate exists, so 301
           # here means the vhost matched and the request reached the right place.
           check /issuer/.well-known/openid-credential-issuer 301
-          check /auth/.well-known/openid-configuration 301
+          oidc_path=$(grep -E '^OIDC_PATH=' deploy/stack.env | cut -d= -f2)
+          check "${oidc_path}.well-known/openid-configuration" 301
           # Taking new paths on this hostname must not shadow what is already on it.
           check /wallet-provider/jwks 301
           check /token_status_list/swagger/ 301

@@ -49,6 +49,10 @@ services:
     configs:
       - source: oidc-config
         target: /app/authorization_config.json
+      # Over the shipped copy, which names upstream's host: the well-known
+      # routes send this file as-is and config.json never reaches it.
+      - source: oidc-metadata
+        target: /app/openid-configuration.json
     networks:
       # The alias is what OIDC_INTERNAL_URL dials.
       proxy-net:
@@ -164,6 +168,13 @@ configs:
   oidc-config:
     content: |
       ${OIDC_CONFIG_JSON:?run deploy/render-oidc-config.py, see deploy/README.md}
+
+  # Rendered by deploy/render-oidc-metadata.py from the OIDC image's own copy.
+  # Only changes with the image or OIDC_PUBLIC_URL, and either of those changes
+  # the service too, so compose's not-recreating-on-content-change is moot here.
+  oidc-metadata:
+    content: |
+      ${OIDC_METADATA_JSON:?run deploy/render-oidc-metadata.py, see deploy/README.md}
 
   # Stock nginx serves .pem as application/x-x509-ca-cert. RFC 2585 names
   # application/pkix-crl for a DER CRL, and strict clients check.

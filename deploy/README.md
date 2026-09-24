@@ -66,7 +66,7 @@ told apart by path:
 | `/` | status list |
 | `/wallet-provider/` | wallet provider |
 | `/issuer/` | this issuer |
-| `/auth/` | the OIDC server |
+| `/issuer/oidc/` | the OIDC server, nested; see "Why the OIDC server is under /issuer/" |
 | `/revocation/` | the CRL, in this stack too; see "The CRL" below |
 
 `VIRTUAL_DEST=/` strips the prefix, so both apps serve at their own root and are
@@ -89,6 +89,45 @@ nginx-proxy names a path-routed upstream.
 Changing `ISSUER_PATH` or `OIDC_PATH` here means recomputing those hashes there:
 
     printf '%s' "/issuer/" | sha1sum
+
+## Why the OIDC server is under /issuer/
+
+It was at `/auth/` until 2026-09-24, and discovery was broken three ways:
+
+    issuer's authorization_servers        https://<host>/issuer/oidc       404
+    the issuer's own AS metadata           endpoints under /issuer/oidc/    404
+    the OIDC server's own metadata         https://dev.issuer.eudiw.dev/oidc, the EU's server
+
+Upstream assumes the authorization server is **the credential issuer URL plus
+`/oidc`**. Its issuer runs at a host root, so for them that is `/oidc`; ours is
+at `/issuer`, so for us it is `/issuer/oidc`. The issuer's metadata, its own
+copy of the AS metadata, and the frontend (`app/__init__.py:268`) all derive it
+that way, by substituting the base URL. Mounting the OIDC server there makes
+all of them true as shipped, instead of overriding each.
+
+nginx picks the longest prefix, so `/issuer/oidc/` wins over `/issuer/`. The
+issuer serves nothing under `/oidc/` itself.
+
+**The OIDC server's metadata still needs rewriting.** Its well-known routes send
+`/app/openid-configuration.json` as shipped (`views.py`, `well_known`), and
+`config.json` never reaches it, so it names upstream's host however `domain` and
+`base_url` are set. `deploy/render-oidc-metadata.py` reads it out of the image,
+substitutes `OIDC_PUBLIC_URL` for `https://dev.issuer.eudiw.dev/oidc`, and fails
+if any `eudiw.dev` URL survives. Compose mounts the result over the original.
+
+One more upstream URL, left alone: `views.py:865` redirects to
+`https://dev.issuer.eudiw.dev/oidc/verify/user`, but it is in `/jwt_token`, a
+route its own comment calls a test and nothing calls.
+
+`deploy.sh` walks discovery as a wallet does, and fails unless the issuer's
+`authorization_servers`, the server's own `issuer` at the RFC 8414 location,
+and the issuer's own AS metadata all agree, with no `eudiw.dev` left. That is
+the check that would have caught this.
+
+Changing `OIDC_PATH` means changing `oidc-config.patch.json` (`domain`,
+`base_url`, `allowed_htu`), the frontend's `OIDC_PUBLIC_URL`, and the
+`/.well-known/…/issuer/oidc` rule and its sha1 in `eudi-srv-wallet-provider`.
+It also changes what every issued token names as its issuer.
 
 ## The CRL
 

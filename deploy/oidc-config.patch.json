@@ -10,8 +10,8 @@
     "server_name, op.server_info.issuer and webserver.domain."
   ],
 
-  "domain": "demo.eudiw.grnet.gr/auth",
-  "base_url": "https://demo.eudiw.grnet.gr/auth",
+  "domain": "demo.eudiw.grnet.gr/issuer/oidc",
+  "base_url": "https://demo.eudiw.grnet.gr/issuer/oidc",
 
   "_comment_redirect": [
     "Where the OIDC server sends the browser to pick an authentication method.",
@@ -31,7 +31,7 @@
               "the wallet sees it, through the proxy and with the prefix."
             ],
             "allowed_htu": [
-              "https://demo.eudiw.grnet.gr/auth/token",
+              "https://demo.eudiw.grnet.gr/issuer/oidc/token",
               "https://demo.eudiw.grnet.gr/issuer/token"
             ]
           }
