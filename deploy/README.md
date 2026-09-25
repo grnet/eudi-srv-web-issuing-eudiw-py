@@ -15,8 +15,8 @@ socket exist on the box.
 
 The OIDC server is built in `eudi-srv-issuer-oidc-py` and deployed from here.
 The dependency runs one way, the issuer calls it for `/introspection` and
-`/verify/user` and never the reverse, and the config naming both services lives
-here. That repository has a build workflow and no `deploy/`.
+sends browsers to its `/verify/user`, never the reverse, and the config naming
+both services lives here. That repository has a build workflow and no `deploy/`.
 
 ## Before the first deploy
 
@@ -265,8 +265,14 @@ it, through the proxy and with the prefix.
 
 The authorization server is reached two ways, and the config says so:
 
-    base_url:     https://demo.eudiw.grnet.gr/auth   browser redirects, metadata
-    internal_url: http://oidc:5000                   issuer to OIDC, in-network
+    base_url:             https://demo.eudiw.grnet.gr/issuer/oidc               metadata
+    user_verify_endpoint: https://demo.eudiw.grnet.gr/issuer/oidc/verify/user   browser redirect
+    internal_url:         http://oidc:5000                                      issuer to OIDC, in-network
+
+`user_verify_endpoint` must be public: the issuer redirects the browser there
+after the form (`app/route_dynamic.py`). Until 2026-09-25 it used
+`internal_url`, and the browser landed on `http://oidc:5000`, which does not
+resolve outside Docker.
 
 Plain http on the internal one is not a shortcut. The OIDC server's `ssl_context`
 is commented out upstream, so it serves http and nginx-proxy terminates TLS.

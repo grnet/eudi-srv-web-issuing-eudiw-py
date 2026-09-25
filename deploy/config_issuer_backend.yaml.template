@@ -45,7 +45,8 @@ frontend:
 authorization_server:
   base_url: "${OIDC_PUBLIC_URL}"
   internal_url: "${OIDC_INTERNAL_URL}"
-  user_verify_endpoint: "${OIDC_INTERNAL_URL}/verify/user"
+  # Public: the issuer redirects the browser here after the form.
+  user_verify_endpoint: "${OIDC_PUBLIC_URL}/verify/user"
 
 # ============================================================================
 # EXTERNAL SERVICES CONFIGURATION
