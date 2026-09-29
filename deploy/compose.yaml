@@ -1,6 +1,6 @@
 # The PID issuer, its authorization server, and their Postgres.
-# See deploy/README.md. Use deploy.sh or the Deploy workflow, not compose
-# directly: both configs are rendered before compose runs.
+# See deploy/README.md. Use the Deploy workflow, not compose directly: both
+# configs are rendered before compose runs.
 #
 # proxy-net belongs to eudi-srv-wallet-provider and must be up first.
 
@@ -46,7 +46,7 @@ services:
       LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:?set in stack.env}
       # Unused by the app: a new wallet provider certificate changes it, so
       # compose recreates the server.
-      WALLET_PROVIDER_CERT_SHA256: ${WALLET_PROVIDER_CERT_SHA256:?set by deploy.sh or the deploy workflow}
+      WALLET_PROVIDER_CERT_SHA256: ${WALLET_PROVIDER_CERT_SHA256:?set by the deploy workflow}
     # /app exists in the image, /etc/issuer_config does not.
     command: ["python3", "server.py", "/app/authorization_config.json"]
     configs:
@@ -71,12 +71,12 @@ services:
     container_name: eudiw-issuer-pki-init
     restart: "no"
     # base64 so compose does not interpolate the script's shell variables.
-    # deploy/pki-init.sh is the source; deploy.sh encodes it.
+    # deploy/pki-init.sh is the source; the deploy workflow encodes it.
     entrypoint: ["/bin/sh", "-c"]
     command:
       - echo "$$PKI_INIT_B64" | base64 -d > /tmp/pki-init.sh && sh /tmp/pki-init.sh
     environment:
-      PKI_INIT_B64: ${PKI_INIT_B64:?set by deploy.sh or the deploy workflow}
+      PKI_INIT_B64: ${PKI_INIT_B64:?set by the deploy workflow}
       # Document signer and IACA certificates; the key is the ds-key secret.
       DS_CERT_PEM: ${DS_CERT_PEM:?from WEBUILD/pki/leaves/pid-ds-gr-01/pid-ds-gr-01.crt, see deploy/README.md}
       IACA_PEM: ${IACA_PEM:?from WEBUILD/pki/ca/root-ca-grnet.pem, see deploy/README.md}
@@ -108,7 +108,7 @@ services:
       # /app exists in the image; /etc/issuer_config does not.
       ISSUER_CONFIG_PATH: /app/config_issuer_backend.yaml
       # Unused by the app: a new signer changes it, so compose recreates the issuer.
-      DS_CERT_SHA256: ${DS_CERT_SHA256:?set by deploy.sh or the deploy workflow}
+      DS_CERT_SHA256: ${DS_CERT_SHA256:?set by the deploy workflow}
     configs:
       - source: issuer-config
         target: /app/config_issuer_backend.yaml
@@ -150,8 +150,8 @@ services:
       # exception lives in the edge instead, see eudi-srv-wallet-provider.
       LETSENCRYPT_HOST: ${ISSUER_HOST}
       LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
-      # Public data, not secrets. deploy.sh derives both from WEBUILD/pki; the
-      # workflow from the CRL_PEM and IACA_PEM repository variables.
+      # Public data, not secrets. The deploy workflow derives both from the
+      # CRL_PEM and IACA_PEM repository variables.
       #
       # Environment rather than configs on purpose: compose recreates a container
       # when its environment changes but not when a config's content does, so
@@ -182,7 +182,7 @@ services:
 configs:
   # Rendered from deploy/config_issuer_backend.yaml.template.
   issuer-config:
-    content: ${ISSUER_CONFIG:?rendered by deploy.sh or the deploy workflow}
+    content: ${ISSUER_CONFIG:?rendered by the deploy workflow}
 
   # Rendered by deploy/render-oidc-config.py from the OIDC image's own config.
   oidc-config:
@@ -211,7 +211,7 @@ configs:
 
   # The wallet provider's signing certificate, from its /jwks.
   wallet-provider-cert:
-    content: ${WALLET_PROVIDER_CERT_PEM:?set by deploy.sh or the deploy workflow}
+    content: ${WALLET_PROVIDER_CERT_PEM:?set by the deploy workflow}
 
 secrets:
   # Document signer key. A secret, so `docker inspect` does not show it.

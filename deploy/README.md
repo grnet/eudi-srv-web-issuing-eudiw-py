@@ -53,8 +53,6 @@ variable can be read back and compared:
     gh variable set DS_CERT_PEM --repo grnet/eudi-srv-web-issuing-eudiw-py < ../pki/leaves/pid-ds-gr-01/pid-ds-gr-01.crt
     gh secret set   DS_KEY_PEM  --repo grnet/eudi-srv-web-issuing-eudiw-py < ../pki/leaves/pid-ds-gr-01/pid-ds-gr-01.key
 
-`deploy.sh` does not use them; it reads `WEBUILD/pki` directly.
-
 Nothing keeps `STATUSLIST_API_KEY` in step with the status list's copy. Changing
 one without the other means every credential issuance fails at the revocation
 call.
@@ -122,11 +120,6 @@ One more upstream URL, left alone: `views.py:865` redirects to
 `https://dev.issuer.eudiw.dev/oidc/verify/user`, but it is in `/jwt_token`, a
 route its own comment calls a test and nothing calls.
 
-`deploy.sh` walks discovery as a wallet does, and fails unless the issuer's
-`authorization_servers`, the server's own `issuer` at the RFC 8414 location,
-and the issuer's own AS metadata all agree, with no `eudiw.dev` left. That is
-the check that would have caught this.
-
 Changing `OIDC_PATH` means changing `oidc-config.patch.json` (`domain`,
 `base_url`, `allowed_htu`), the frontend's `OIDC_PUBLIC_URL`, and the
 `/.well-known/…/issuer/oidc` rule and its sha1 in `eudi-srv-wallet-provider`.
@@ -143,7 +136,7 @@ The IACA was under `/revocation/` until 2026-09-24. It moved because a trust
 anchor is not revocation data, and because the plain-http exception covers the
 whole `/revocation/` prefix: a certificate you are about to trust should not
 come over plain http. `PKI_PATH` is outside that exception, so it redirects
-like every other path, and `deploy.sh` checks that it does.
+like every other path, and the deploy workflow checks that it does.
 
 The first URL is not ours to choose. It is the `crlDistributionPoints` of the
 IACA and of every certificate under it, signed in, so `CRL_PATH` in `stack.env`
@@ -172,28 +165,25 @@ check.
 
 **It arrives as environment variables, not configs.** Compose recreates a
 container when its environment changes but not when a config's content does, so
-this way a CRL refresh rolls out on a plain `./deploy.sh` and restarts only this
+this way a CRL refresh rolls out on a plain deploy and restarts only this
 container. The DER travels base64-encoded and is decoded at start.
 
-Both deploy paths refuse a CRL that does not verify against the IACA. That is
+The deploy workflow refuses a CRL that does not verify against the IACA. That is
 the failure already live on gfour's `:5607`, whose CRL is signed by the
 superseded root.
 
 ### Refreshing it, yearly
 
 The current one runs to **Sep 22 2027**. `nextUpdate` is a year after issue;
-past it, verifiers treat the CRL as stale. `deploy.sh` warns when fewer than 30
-days remain. Why a year, and why the IACA key is not in GitHub so a workflow
-could do it, is in `WEBUILD/pki/README.md`.
+past it, verifiers treat the CRL as stale. Why a year, and why the IACA key is
+not in GitHub so a workflow could do it, is in `WEBUILD/pki/README.md`.
 
     cd ../pki && ./pki.sh crl
     gh variable set CRL_PEM --repo grnet/eudi-srv-web-issuing-eudiw-py < crl/crl.pem
-    cd ../eudi-srv-web-issuing-eudiw-py && ./deploy.sh
+    # then run the Deploy workflow
 
-`deploy.sh` then checks what a verifier would: that the http URL answers 200
-without a redirect, that the served bytes are the local CRL in DER, and that
-`openssl verify -crl_check -crl_download` passes a leaf, fetching the CRL from
-the leaf's own distribution point.
+After deploying, the workflow checks that the http URL answers 200 without a
+redirect.
 
 ## The document signer
 
@@ -212,9 +202,8 @@ certificate's. Not into `cert/`: the issuer loads every `*.pem` there as a
 trusted CA, which a signer is not. The IACA does go into `cert/`, so a PID issued
 here verifies when a wallet presents it back to log in.
 
-`deploy.sh` reads `WEBUILD/pki` directly, `DS_NAME` choosing the leaf. Both deploy
-paths refuse a signer that does not chain to the IACA or whose key is not its
-own.
+The deploy workflow refuses a signer that does not chain to the IACA or whose
+key is not its own.
 
 **Signed metadata comes from the frontend.** The EUDI wallet requires signed
 issuer metadata by default (OpenID4VCI 1.0 §12.2.2) and refuses an issuer
@@ -228,16 +217,15 @@ advertises are still this backend's.
 
 **The frontend signs once, at startup**, and caches the result. After a deploy
 that changes the signer, restart it (`docker restart eudiw-frontend`) or it
-keeps serving metadata signed by the old one. `deploy.sh` then fetches the
+keeps serving metadata signed by the old one. The deploy workflow fetches the
 metadata as the wallet does and checks the x5c is this signer.
 
-**Renewing it**, before Oct 29 2027 (400 days; `deploy.sh` warns a month
-ahead):
+**Renewing it**, before Oct 29 2027 (400 days):
 
     cd ../pki && ./pki.sh leaf pid-ds-gr-01
     gh variable set DS_CERT_PEM --repo grnet/eudi-srv-web-issuing-eudiw-py < leaves/pid-ds-gr-01/pid-ds-gr-01.crt
     gh secret set   DS_KEY_PEM  --repo grnet/eudi-srv-web-issuing-eudiw-py < leaves/pid-ds-gr-01/pid-ds-gr-01.key
-    cd ../eudi-srv-web-issuing-eudiw-py && ./deploy.sh
+    # then run the Deploy workflow
 
     docker restart eudiw-frontend          # DOCKER_HOST=ssh://aws-gfour
 
@@ -291,25 +279,17 @@ with the TS3 v1.5 work; older versions of this service had no database.
 Note the data mount is `/var/lib/postgresql/data`, correct up to 17; the wallet
 provider runs 18, which changed that path.
 
-## Deploying by hand
-
-`workflow_dispatch` only registers once the workflow file is on the default
-branch, so until this merges use `./deploy.sh` (untracked). It runs the same
-compose commands against the same daemon.
-
-    ./deploy.sh                      issuer at sha- of HEAD, newest built oidc
-    ./deploy.sh <issuer-tag> <oidc-tag>
+## Image tags
 
 Both deployed services already use `sha-` tags rather than `latest` or a branch
 tag, because a sha- tag names exactly one build and is published on every run.
 `latest` is only published from a repository's default branch, and none of these
 branches has merged there.
 
-The OIDC tag cannot be derived from a commit in this repository, so `deploy.sh`
-walks the sibling checkout's recent commits and picks the newest one that has a
-published image. That is not always the branch tip: the build skips
-markdown-only commits. The workflow has no sibling checkout, so it takes the tag
-as a required input.
+The OIDC tag cannot be derived from a commit in this repository, so the
+workflow takes it as a required input. Use the newest `sha-` tag with a
+published image in `eudi-srv-issuer-oidc-py`. That is not always the branch
+tip: the build skips markdown-only commits.
 
 ## Config changes need a recreate
 
@@ -318,9 +298,6 @@ It compares the service definition, and `content: ${VAR}` is textually the same
 whatever `VAR` expands to. So a fix to `stack.env`, `config_issuer_backend.yaml.template`
 or `oidc-config.patch.json` deploys without taking effect, and the container
 keeps running with the old file. The deploy reports success.
-
-    ./deploy.sh                      # image change
-    RECREATE=1 ./deploy.sh           # config change
 
 In the Deploy workflow, tick **Recreate containers even if the image tag is
 unchanged**.
