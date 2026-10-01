@@ -84,6 +84,30 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Fail early, with a reason, if either image is not in the registry.
+      - name: Check the images are built
+        env:
+          ISSUER_IMAGE: ${{ steps.image.outputs.issuer }}
+          OIDC_IMAGE: ${{ steps.image.outputs.oidc }}
+        run: |
+          set -uo pipefail
+          lookup() {
+            if err=$(docker buildx imagetools inspect "$1" 2>&1 >/dev/null); then
+              echo "found $1"
+            elif grep -q 'not found' <<<"$err"; then
+              echo "::error::$1 is not in the registry. $2"
+              return 1
+            else
+              echo "$err"
+              echo "::error::could not look up $1"
+              return 1
+            fi
+          }
+          ok=0
+          lookup "$ISSUER_IMAGE" "Wait for its Docker build to finish, or pass an image_tag that exists." || ok=1
+          lookup "$OIDC_IMAGE" "Check oidc_image_tag against grnet/eudi-srv-issuer-oidc-py." || ok=1
+          exit "$ok"
+
       # config and known_hosts are committed under deploy/ssh/: hostnames, ports
       # and host keys are public data. Only the private key is a secret.
       - name: Configure SSH
@@ -312,40 +336,51 @@ jobs:
           if docker exec nginx-proxy nginx -t >/dev/null 2>&1; then
             echo "  ok"
           else
-            docker exec nginx-proxy nginx -t 2>&1 | sed 's/^/       /'
+            docker exec nginx-proxy nginx -t 2>&1 | sed 's/^/       /' || true
             fail=1
           fi
 
           host=$(grep -E '^ISSUER_HOST=' deploy/stack.env | cut -d= -f2)
+          # Over https unless the third argument is "http": port 80 answers
+          # almost everything with a 301, so a 301 proves nothing about routing.
+          # --connect-to keeps the edge hostname for SNI, so the certificate is
+          # checked too. Retried, because the apps take a moment after `up -d`.
           check() {
-            code=$(docker run --rm --network proxy-net curlimages/curl:8.11.1 \
-                     -s -o /dev/null -w '%{http_code}' --max-time 10 \
-                     -H "Host: $host" "http://nginx-proxy$1" || echo 000)
+            local url="https://$host$1" to="$host:443:nginx-proxy:443"
+            if [[ "${3:-}" == "http" ]]; then
+              url="http://$host$1" to="$host:80:nginx-proxy:80"
+            fi
+            for _ in $(seq 1 12); do
+              code=$(docker run --rm --network proxy-net curlimages/curl:8.11.1 \
+                       -s -o /dev/null -w '%{http_code}' --max-time 10 \
+                       --connect-to "$to" "$url" || echo 000)
+              [[ "$code" == "$2" ]] && break
+              sleep 5
+            done
             if [[ "$code" == "$2" ]]; then
-              echo "  ok   $1 returned $code"
+              echo "  ok   ${3:-https} $1 returned $code"
             else
-              echo "  FAIL $1 returned $code, expected $2"
+              echo "  FAIL ${3:-https} $1 returned $code, expected $2"
               fail=1
             fi
           }
 
           echo "── routing ──"
-          # The proxy redirects http to https once a certificate exists, so 301
-          # here means the vhost matched and the request reached the right place.
-          check /issuer/.well-known/openid-credential-issuer 301
+          check /issuer/.well-known/openid-credential-issuer 200
           oidc_path=$(grep -E '^OIDC_PATH=' deploy/stack.env | cut -d= -f2)
-          check "${oidc_path}.well-known/openid-configuration" 301
+          check "${oidc_path}.well-known/openid-configuration" 200
           # Taking new paths on this hostname must not shadow what is already on it.
-          check /wallet-provider/jwks 301
-          check /token_status_list/swagger/ 301
+          check /wallet-provider/jwks 200
+          check /token_status_list/swagger/ 200
           # The one path that must NOT redirect: the IACA names this URL over
           # plain http, and a JVM will not follow http to https. 301 means the
           # edge's plain-http exception in eudi-srv-wallet-provider is missing.
           crl_path=$(grep -E '^CRL_PATH=' deploy/stack.env | cut -d= -f2)
-          check "${crl_path}crl.pem" 200
-          # And the IACA's download path must redirect: https only.
+          check "${crl_path}crl.pem" 200 http
+          # And the IACA's download path must be served, over https only.
           pki_path=$(grep -E '^PKI_PATH=' deploy/stack.env | cut -d= -f2)
-          check "${pki_path}root-ca-grnet.pem" 301
+          check "${pki_path}root-ca-grnet.pem" 200
+          check "${pki_path}root-ca-grnet.pem" 301 http
 
           echo "── signed metadata ──"
           # Checked as the wallet does; x5c must be DS_CERT_PEM. PyJWT is in
