@@ -1,11 +1,10 @@
 {
-   "eu.webuildconsortium.sca.user_mdoc":{
-      "format":"mso_mdoc",
-      "doctype":"eu.webuildconsortium.sca.user.1",
-      "scope":"eu.webuildconsortium.sca.user_mdoc",
+   "eu.webuildconsortium.sca.card_dpc_sd_jwt":{
+      "format":"dc+sd-jwt",
+      "vct":"https://issuer.bank.example/credentials/sca/card-dpc/1.0",
+      "scope":"eu.webuildconsortium.sca.card_dpc_sd_jwt",
       "cryptographic_binding_methods_supported":[
-         "jwk",
-         "cose_key"
+         "jwk"
       ],
       "credential_signing_alg_values_supported":[
          "ES256"
@@ -20,11 +19,12 @@
       "credential_metadata":{
          "display":[
             {
-               "name":"SCA User Credential",
+               "name":"SCA Card (DPC)",
                "locale":"en",
+               "description":"Digital Payment Credential for payment authentication with Strong Customer Authentication.",
                "logo":{
-                  "uri":"https://issuer.bank.cz/assets/sca-logo.png",
-                  "alt_text":"Bank CZ SCA credential logo"
+                  "uri":"https://issuer.bank.example/assets/sca-card-logo.png",
+                  "alt_text":"SCA Card (DPC) credential logo"
                },
                "background_color":"#1A3C8F",
                "text_color":"#FFFFFF"
@@ -33,43 +33,55 @@
          "claims":[
             {
                "path":[
-                  "eu.webuildconsortium.sca.user.1",
-                  "sub"
+                  "credential_id"
                ],
                "mandatory":true,
+               "value_type":"string",
                "source":"issuer",
                "display":[
                   {
-                     "name":"User identifier",
+                     "name":"Credential ID",
                      "locale":"en"
                   }
                ]
             },
             {
                "path":[
-                  "eu.webuildconsortium.sca.user.1",
-                  "masked_psu_id"
+                  "network"
+               ],
+               "mandatory":true,
+               "value_type":"string",
+               "source":"user",
+               "display":[
+                  {
+                     "name":"Payment Network",
+                     "locale":"en"
+                  }
+               ]
+            },
+            {
+               "path":[
+                  "card_id"
                ],
                "mandatory":false,
                "value_type":"string",
                "source":"user",
                "display":[
                   {
-                     "name":"PSU identifier",
+                     "name":"Card ID",
                      "locale":"en"
                   }
                ]
             },
             {
                "path":[
-                  "eu.webuildconsortium.sca.user.1",
                   "attestation_legal_category"
                ],
                "mandatory":true,
                "source":"issuer",
                "display":[
                   {
-                     "name":"Attestation legal category",
+                     "name":"Attestation Legal Category",
                      "locale":"en"
                   }
                ]
@@ -79,9 +91,8 @@
       "issuer_config":{
          "issuing_authority":"Test SCA issuer",
          "organization_id":"EUDI Wallet Reference Implementation",
-         "validity":1,
-         "organization_name":"Test SCA issuer",
-         "namespace":"eu.webuildconsortium.sca.user.1"
+         "validity":730,
+         "organization_name":"Test SCA issuer"
       }
    }
 }
