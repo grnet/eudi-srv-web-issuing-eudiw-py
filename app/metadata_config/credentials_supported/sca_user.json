@@ -1,0 +1,43 @@
+{
+  "id": "sca_user",
+  "format": "mso_mdoc",
+  "doctype": "eu.webuildconsortium.sca.user.1",
+  "scope": "sca_user",
+  "cryptographically_bound_to": "eu.europa.ec.eudi.pid.1",
+  "credential_metadata": {
+    "display": [
+      {
+        "lang": "en",
+        "name": "SCA User Credential",
+        "description": "Strong Customer Authentication user credential used for authentication and risk operation authorization.",
+        "rendering": {
+          "simple": {
+            "logo": {
+              "uri": "https://issuer.bank.cz/assets/sca-logo.png",
+              "alt_text": "SCA Credential Logo"
+            },
+            "background_color": "#1A3C8F",
+            "text_color": "#FFFFFF"
+          }
+        }
+      }
+    ],
+    "claims": [
+      {
+        "path": ["sub"],
+        "display": [{"lang": "en", "label": "User Identifier"}],
+        "sd": "never"
+      },
+      {
+        "path": ["masked_psu_id"],
+        "display": [{"lang": "en", "label": "Masked PSU ID"}],
+        "sd": "never"
+      },
+      {
+        "path": ["attestation_legal_category"],
+        "display": [{"lang": "en", "label": "Legal Category"}],
+        "sd": "never"
+      }
+    ]
+  }
+}
