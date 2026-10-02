@@ -1,0 +1,425 @@
+# Deploy to the EC2 box. Manual only, so a push never changes what is running.
+#
+# Drives the remote Docker daemon over SSH: DOCKER_HOST=ssh://target means the
+# runner's compose client controls the server's. The compose file and the
+# environment are read on the runner and never land on the box.
+#
+# Two images, one stack. The OIDC server is built in eudi-srv-issuer-oidc-py and
+# deployed from here, because the issuer calls it and this repository holds the
+# config naming both.
+#
+# The edge (nginx-proxy, acme-companion, proxy-net) belongs to
+# eudi-srv-wallet-provider and must be deployed first.
+
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Issuer image tag (default: sha- tag of this commit)'
+        required: false
+        type: string
+      # No default: the OIDC image is built in another repository, so this
+      # workflow cannot derive a tag from its own commit. `latest` and branch
+      # tags are unreliable here, `latest` only publishes from that repo's
+      # default branch. Use a sha- tag, which every build publishes.
+      oidc_image_tag:
+        description: 'OIDC image tag, e.g. sha-4887aaa0... (grnet/eudi-srv-issuer-oidc-py)'
+        required: true
+        type: string
+      # Compose does not recreate a container when only a config's content
+      # changes, so a config-only fix is deployed but not picked up. Tick this
+      # when the change is to stack.env or either config template.
+      force_recreate:
+        description: 'Recreate containers even if the image tag is unchanged'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  ISSUER_IMAGE_NAME: ${{ github.repository }}
+  OIDC_IMAGE_NAME: grnet/eudi-srv-issuer-oidc-py
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
+      packages: read
+
+    env:
+      DOCKER_HOST: ssh://target
+      COMPOSE: docker compose -f deploy/compose.yaml -p eudiw-issuer
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7.0.1
+
+      - name: Resolve the image tags
+        id: image
+        run: |
+          set -euo pipefail
+          tag="${{ inputs.image_tag }}"
+          [[ -n "$tag" ]] || tag="sha-${{ github.sha }}"
+          echo "issuer=${REGISTRY}/${ISSUER_IMAGE_NAME}:${tag}" >> "$GITHUB_OUTPUT"
+          echo "oidc=${REGISTRY}/${OIDC_IMAGE_NAME}:${{ inputs.oidc_image_tag }}" >> "$GITHUB_OUTPUT"
+          echo "issuer ${REGISTRY}/${ISSUER_IMAGE_NAME}:${tag}"
+          echo "oidc   ${REGISTRY}/${OIDC_IMAGE_NAME}:${{ inputs.oidc_image_tag }}"
+
+      # Authenticated on the runner. The credentials are forwarded to the remote
+      # daemon for the pull, so the box needs no registry login of its own.
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Fail early, with a reason, if either image is not in the registry.
+      - name: Check the images are built
+        env:
+          ISSUER_IMAGE: ${{ steps.image.outputs.issuer }}
+          OIDC_IMAGE: ${{ steps.image.outputs.oidc }}
+        run: |
+          set -uo pipefail
+          lookup() {
+            if err=$(docker buildx imagetools inspect "$1" 2>&1 >/dev/null); then
+              echo "found $1"
+            elif grep -q 'not found' <<<"$err"; then
+              echo "::error::$1 is not in the registry. $2"
+              return 1
+            else
+              echo "$err"
+              echo "::error::could not look up $1"
+              return 1
+            fi
+          }
+          ok=0
+          lookup "$ISSUER_IMAGE" "Wait for its Docker build to finish, or pass an image_tag that exists." || ok=1
+          lookup "$OIDC_IMAGE" "Check oidc_image_tag against grnet/eudi-srv-issuer-oidc-py." || ok=1
+          exit "$ok"
+
+      # config and known_hosts are committed under deploy/ssh/: hostnames, ports
+      # and host keys are public data. Only the private key is a secret.
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SSH_KEY:-}" ]]; then
+            echo "::error::SSH_KEY is not set; see deploy/README.md"
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          install -m 600 deploy/ssh/config ~/.ssh/config
+          install -m 644 deploy/ssh/known_hosts ~/.ssh/known_hosts
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/eudiw-deploy
+          chmod 600 ~/.ssh/eudiw-deploy
+          ssh -o BatchMode=yes target 'echo "connected to $(hostname)"'
+
+      # proxy-net comes from the wallet provider's stack. Without it compose
+      # fails outright, which is at least loud, but saying so here is clearer
+      # than a compose error.
+      - name: Preflight
+        run: |
+          set -euo pipefail
+          if docker network inspect proxy-net >/dev/null 2>&1; then
+            echo "ok   proxy-net exists"
+          else
+            echo "::error::proxy-net is missing. Deploy eudi-srv-wallet-provider first."
+            exit 1
+          fi
+
+      # Reads config.json out of the OIDC image and merges the deploy overrides
+      # over it, so upstream's 355 other lines are used as shipped. Runs locally
+      # against the registry, not on the box.
+      - name: Render the OIDC config
+        id: oidc
+        run: |
+          set -euo pipefail
+          docker pull -q "${{ steps.image.outputs.oidc }}"
+          {
+            echo 'json<<OIDC_EOF'
+            DOCKER_HOST= ./deploy/render-oidc-config.py "${{ steps.image.outputs.oidc }}"
+            echo 'OIDC_EOF'
+          } >> "$GITHUB_OUTPUT"
+          # The server's published metadata, which config.json does not reach.
+          set -a; . deploy/stack.env; set +a
+          {
+            echo 'metadata<<OIDC_EOF'
+            DOCKER_HOST= ./deploy/render-oidc-metadata.py "${{ steps.image.outputs.oidc }}" "$OIDC_PUBLIC_URL"
+            echo 'OIDC_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      # Compose interpolates ${...} client-side, here on the runner, and sends
+      # the daemon an already-expanded spec. The values only have to exist in
+      # this step's environment; nothing is written to disk on the box.
+      - name: Pull and roll
+        env:
+          ISSUER_IMAGE: ${{ steps.image.outputs.issuer }}
+          OIDC_IMAGE: ${{ steps.image.outputs.oidc }}
+          OIDC_CONFIG_JSON: ${{ steps.oidc.outputs.json }}
+          OIDC_METADATA_JSON: ${{ steps.oidc.outputs.metadata }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+          STATUSLIST_API_KEY: ${{ secrets.STATUSLIST_API_KEY }}
+          # Variables, not secrets: both are public, and a variable can be read
+          # back and compared with WEBUILD/pki. Set with `gh variable set`.
+          CRL_PEM: ${{ vars.CRL_PEM }}
+          IACA_PEM: ${{ vars.IACA_PEM }}
+          # Document signer: public certificate, secret key.
+          DS_CERT_PEM: ${{ vars.DS_CERT_PEM }}
+          DS_KEY_PEM: ${{ secrets.DS_KEY_PEM }}
+        run: |
+          set -euo pipefail
+
+          for k in CRL_PEM IACA_PEM DS_CERT_PEM; do
+            if [[ -z "${!k:-}" ]]; then
+              echo "::error::repository variable $k is not set; see deploy/README.md"
+              exit 1
+            fi
+          done
+          if [[ -z "${DS_KEY_PEM:-}" ]]; then
+            echo "::error::repository secret DS_KEY_PEM is not set; see deploy/README.md"
+            exit 1
+          fi
+
+          # A CRL signed by a superseded root is served happily and rejected by
+          # every verifier that checks, so refuse to ship one.
+          if ! openssl crl -noout -CAfile <(printf '%s\n' "$IACA_PEM") <<< "$CRL_PEM" 2>/dev/null; then
+            echo "::error::CRL_PEM does not verify against IACA_PEM"
+            exit 1
+          fi
+          echo "CRL $(openssl crl -noout -nextupdate <<< "$CRL_PEM")"
+          # Served as DER, see the crl service in deploy/compose.yaml.
+          CRL_DER_B64=$(openssl crl -outform DER <<< "$CRL_PEM" | base64 -w0)
+          export CRL_DER_B64
+
+          # The signer must chain to the IACA and match its key.
+          if ! openssl verify -CAfile <(printf '%s\n' "$IACA_PEM") <(printf '%s\n' "$DS_CERT_PEM") >/dev/null; then
+            echo "::error::DS_CERT_PEM does not verify against IACA_PEM"
+            exit 1
+          fi
+          if [[ "$(openssl pkey -pubout <<< "$DS_KEY_PEM")" != "$(openssl x509 -noout -pubkey <<< "$DS_CERT_PEM")" ]]; then
+            echo "::error::DS_KEY_PEM is not the key of DS_CERT_PEM"
+            exit 1
+          fi
+          echo "signer $(openssl x509 -noout -subject -enddate <<< "$DS_CERT_PEM" | tr '\n' ' ')"
+          DS_CERT_SHA256=$(openssl x509 -noout -fingerprint -sha256 <<< "$DS_CERT_PEM" | cut -d= -f2)
+          export DS_CERT_SHA256
+
+          # Decoded and run by the pki-init container. Encoded so compose does
+          # not interpolate the shell variables inside the script.
+          PKI_INIT_B64=$(base64 -w0 < deploy/pki-init.sh)
+          export PKI_INIT_B64
+
+          # The issuer config, substituted here rather than in the container.
+          # stack.env holds the URLs the template substitutes. Sourced because
+          # envsubst reads the environment, not COMPOSE_ENV_FILES.
+          set -a
+          . deploy/stack.env
+          set +a
+          export DATABASE_NAME="${DATABASE_NAME:-eudiw_issuer}"
+          export DATABASE_USER="${DATABASE_USER:-postgres}"
+          ISSUER_CONFIG=$(envsubst < deploy/config_issuer_backend.yaml.template)
+          export ISSUER_CONFIG
+          if printf '%s' "$ISSUER_CONFIG" | grep -q '\${'; then
+            echo "::error::unsubstituted variables remain in the issuer config"
+            printf '%s' "$ISSUER_CONFIG" | grep -n '\${'
+            exit 1
+          fi
+          for k in DATABASE_PASSWORD STATUSLIST_API_KEY; do
+            if [[ -z "${!k:-}" ]]; then
+              echo "::error::$k is not set; see deploy/README.md"
+              exit 1
+            fi
+          done
+
+          # The wallet provider's certificate, trusted for wallet attestations.
+          if ! WALLET_PROVIDER_CERT_PEM=$(curl -sf --max-time 15 "$WALLET_PROVIDER_JWKS_URL" \
+              | python3 -c 'import json,sys; print(json.load(sys.stdin)["keys"][0]["x5c"][0])' \
+              | base64 -d | openssl x509 -inform der); then
+            echo "::error::no certificate at $WALLET_PROVIDER_JWKS_URL. Is the wallet provider up?"
+            exit 1
+          fi
+          WALLET_PROVIDER_CERT_SHA256=$(openssl x509 -noout -fingerprint -sha256 <<< "$WALLET_PROVIDER_CERT_PEM" | cut -d= -f2)
+          export WALLET_PROVIDER_CERT_PEM WALLET_PROVIDER_CERT_SHA256
+
+          export COMPOSE_ENV_FILES=deploy/stack.env
+
+          recreate=""
+          [[ "${{ inputs.force_recreate }}" == "true" ]] && recreate="--force-recreate"
+
+          $COMPOSE pull
+          $COMPOSE up -d --remove-orphans $recreate
+
+      # The frontend gets its metadata signed by this issuer once, at startup,
+      # so restart it to pick up the current signer.
+      - name: Restart the frontend
+        run: |
+          set -euo pipefail
+          if ! docker inspect eudiw-frontend >/dev/null 2>&1; then
+            echo "::error::no eudiw-frontend container. Deploy eudi-srv-web-issuing-frontend-eudiw-py first."
+            exit 1
+          fi
+          # The issuer must be up first.
+          for _ in $(seq 1 18); do
+            [[ "$(docker inspect -f '{{.State.Status}}' eudiw-issuer 2>/dev/null)" == "running" ]] && break
+            sleep 5
+          done
+          docker restart eudiw-frontend
+          for _ in $(seq 1 12); do
+            [[ "$(docker inspect -f '{{.State.Status}}' eudiw-frontend)" == "running" ]] && break
+            sleep 5
+          done
+          sleep 5
+          echo "eudiw-frontend $(docker inspect -f '{{.State.Status}}' eudiw-frontend)"
+
+      # A green `up -d` only means compose accepted the configuration.
+      - name: Verify
+        env:
+          DS_CERT_PEM: ${{ vars.DS_CERT_PEM }}
+        run: |
+          set -uo pipefail
+          fail=0
+
+          echo "── containers ──"
+          for c in eudiw-issuer-db eudiw-oidc eudiw-issuer eudiw-crl; do
+            state=""
+            for _ in $(seq 1 18); do
+              state=$(docker inspect -f '{{.State.Status}}' "$c" 2>/dev/null || echo absent)
+              [[ "$state" == "running" ]] && break
+              sleep 5
+            done
+            if [[ "$state" == "running" ]]; then
+              echo "  ok   $c"
+            else
+              echo "  FAIL $c ($state)"
+              docker logs --tail 30 "$c" 2>&1 | sed 's/^/       /' || true
+              fail=1
+            fi
+          done
+
+          echo "── document signer ──"
+          # The issuer's key matches DS_CERT_PEM.
+          remote_pub=$(docker exec eudiw-issuer openssl pkey -in /etc/eudiw/pid-issuer-dev/ds/signing.key -pubout 2>/dev/null || true)
+          if [[ -n "$remote_pub" && "$remote_pub" == "$(openssl x509 -noout -pubkey <<< "$DS_CERT_PEM")" ]]; then
+            echo "  ok"
+          else
+            echo "  FAIL pki-init did not populate the volume"
+            docker logs eudiw-issuer-pki-init 2>&1 | sed 's/^/       /' || true
+            fail=1
+          fi
+
+          echo "── trusted wallet attester ──"
+          set -a; . deploy/stack.env; set +a
+          expected=$(curl -sf --max-time 15 "$WALLET_PROVIDER_JWKS_URL" \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin)["keys"][0]["x5c"][0])' \
+            | base64 -d | openssl x509 -inform der)
+          if [[ -n "$expected" && "$(docker exec eudiw-oidc cat /etc/eudiw/pid-issuer-dev/oidc_trusted_attesters/wallet-provider.pem 2>/dev/null)" == "$expected" ]]; then
+            echo "  ok"
+          else
+            echo "  FAIL the OIDC server's trusted attester is not the wallet provider's certificate"
+            fail=1
+          fi
+
+          echo "── nginx config valid ──"
+          if docker exec nginx-proxy nginx -t >/dev/null 2>&1; then
+            echo "  ok"
+          else
+            docker exec nginx-proxy nginx -t 2>&1 | sed 's/^/       /' || true
+            fail=1
+          fi
+
+          host=$(grep -E '^ISSUER_HOST=' deploy/stack.env | cut -d= -f2)
+          # Over https unless the third argument is "http": port 80 answers
+          # almost everything with a 301, so a 301 proves nothing about routing.
+          # --connect-to keeps the edge hostname for SNI, so the certificate is
+          # checked too. Retried, because the apps take a moment after `up -d`.
+          check() {
+            local url="https://$host$1" to="$host:443:nginx-proxy:443"
+            if [[ "${3:-}" == "http" ]]; then
+              url="http://$host$1" to="$host:80:nginx-proxy:80"
+            fi
+            for _ in $(seq 1 12); do
+              code=$(docker run --rm --network proxy-net curlimages/curl:8.11.1 \
+                       -s -o /dev/null -w '%{http_code}' --max-time 10 \
+                       --connect-to "$to" "$url" || echo 000)
+              [[ "$code" == "$2" ]] && break
+              sleep 5
+            done
+            if [[ "$code" == "$2" ]]; then
+              echo "  ok   ${3:-https} $1 returned $code"
+            else
+              echo "  FAIL ${3:-https} $1 returned $code, expected $2"
+              fail=1
+            fi
+          }
+
+          echo "── routing ──"
+          check /issuer/.well-known/openid-credential-issuer 200
+          oidc_path=$(grep -E '^OIDC_PATH=' deploy/stack.env | cut -d= -f2)
+          check "${oidc_path}.well-known/openid-configuration" 200
+          # Taking new paths on this hostname must not shadow what is already on it.
+          check /wallet-provider/jwks 200
+          check /token_status_list/swagger/ 200
+          # The one path that must NOT redirect: the IACA names this URL over
+          # plain http, and a JVM will not follow http to https. 301 means the
+          # edge's plain-http exception in eudi-srv-wallet-provider is missing.
+          crl_path=$(grep -E '^CRL_PATH=' deploy/stack.env | cut -d= -f2)
+          check "${crl_path}crl.pem" 200 http
+          # And the IACA's download path must be served, over https only.
+          pki_path=$(grep -E '^PKI_PATH=' deploy/stack.env | cut -d= -f2)
+          check "${pki_path}root-ca-grnet.pem" 200
+          check "${pki_path}root-ca-grnet.pem" 301 http
+
+          echo "── signed metadata ──"
+          # Checked as the wallet does; x5c must be DS_CERT_PEM. PyJWT is in
+          # the issuer's container.
+          frontend=$(grep -E '^FRONTEND_PUBLIC_URL=' deploy/stack.env | cut -d= -f2)
+          md_url="https://${host}/.well-known/openid-credential-issuer/${frontend#https://*/}"
+          md_type=$(curl -s -o /dev/null -w '%{content_type}' --max-time 15 -H 'Accept: application/jwt' "$md_url" || true)
+          if [[ "$md_type" != application/jwt* ]]; then
+            echo "  FAIL $md_url answered '$md_type' to Accept: application/jwt"
+            fail=1
+          elif out=$(curl -s --max-time 15 -H 'Accept: application/jwt' "$md_url" \
+              | docker exec -i eudiw-issuer python3 -c '
+          import base64, sys, jwt
+          from cryptography import x509
+          issuer, expected = sys.argv[1], base64.b64decode(sys.argv[2])
+          token = sys.stdin.read().strip()
+          header = jwt.get_unverified_header(token)
+          leaf = base64.b64decode(header["x5c"][0])
+          alg, typ = header["alg"], header.get("typ")
+          errs = []
+          if typ != "openidvci-issuer-metadata+jwt":
+              errs.append(f"typ is {typ}")
+          if leaf != expected:
+              errs.append("x5c leaf is not DS_CERT_PEM")
+          claims = jwt.decode(token, x509.load_der_x509_certificate(leaf).public_key(), algorithms=[alg])
+          sub, ci = claims.get("sub"), claims.get("credential_issuer")
+          if sub != issuer or ci != issuer:
+              errs.append(f"sub {sub}, credential_issuer {ci}, expected {issuer}")
+          print("; ".join(errs) if errs else f"{alg}, sub {sub}")
+          sys.exit(1 if errs else 0)
+          ' "$frontend" "$(openssl x509 -outform DER <<< "$DS_CERT_PEM" | base64 -w0)" 2>&1); then
+            echo "  ok   $out, x5c is DS_CERT_PEM"
+          else
+            echo "  FAIL $(printf '%s' "$out" | tail -1)"
+            fail=1
+          fi
+
+          [[ "$fail" -eq 0 ]] && echo "deploy verified" || { echo "verification failed"; exit 1; }
+
+      - name: Clean up
+        if: always()
+        run: docker image prune -f || true
