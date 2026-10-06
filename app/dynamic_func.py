@@ -17,6 +17,7 @@
 ###############################################################################
 import datetime
 import json
+import uuid
 from flask import session
 from misc import (
     calculate_age,
@@ -235,6 +236,26 @@ def update_dates_and_special_claims(
 
     if "credential_type" in issuer_claims:
         data["credential_type"] = doctype_config["credential_type"]
+
+    # WE BUILD rulebooks fix the legal category per attestation type, and not
+    # all to the same value, so each credential declares its own.
+    if "attestation_legal_category" in issuer_claims:
+        data["attestation_legal_category"] = doctype_config["attestation_legal_category"]
+
+    # Identifies this issued credential, not the subject or the card, so it is
+    # new on every issuance (rb-sca-card-dpc, section 2.2).
+    if "credential_id" in issuer_claims:
+        data["credential_id"] = f"urn:uuid:{uuid.uuid4()}"
+
+    # A test issuer stands in for the card issuer, which knows the card, so
+    # the holder types neither: one network per credential, as configured, and
+    # a fresh opaque card reference that reveals nothing of a PAN
+    # (rb-sca-card-dpc, IR-01 and IR-02).
+    if "network" in issuer_claims:
+        data["network"] = doctype_config["network"]
+
+    if "card_id" in issuer_claims:
+        data["card_id"] = str(uuid.uuid4())
 
 
 def normalize_list_and_type_fields(data, attributes_req, attributes_req2, scope=None):

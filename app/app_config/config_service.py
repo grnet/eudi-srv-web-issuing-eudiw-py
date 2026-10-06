@@ -136,12 +136,15 @@ class ConfService:
             "validity": sca_user_validity,
             "organization_name": "Test SCA issuer",
             "namespace": "eu.webuildconsortium.sca.user.1",
+            "attestation_legal_category": "non-qualified-EAA",
         },
-        "https://issuer.bank.example/credentials/sca/card-dpc/1.0": {
+        "https://demo.eudiw.grnet.gr/issuer/credentials/sca/card-dpc/1.0": {
             "issuing_authority": "Test SCA issuer",
             "organization_id": pid_organization_id,
             "validity": sca_card_dpc_validity,
             "organization_name": "Test SCA issuer",
+            "attestation_legal_category": "non-qualified-EAA",
+            "network": "mastercard",
         },
     }
 

@@ -52,9 +52,10 @@ authorization_server:
 # EXTERNAL SERVICES CONFIGURATION
 # ============================================================================
 #verifier url for oid4vp request generation, available at https://github.com/eu-digital-identity-wallet/eudi-srv-verifier-endpoint
-dynamic_presentation_url: "https://verifier-backend.eudiw.dev/ui/presentations"
+# Ours, not the EU's: see VERIFIER_PUBLIC_URL in stack.env.
+dynamic_presentation_url: "${VERIFIER_PUBLIC_URL}/ui/presentations"
 # at least one of 'intended_use_id' or 'registration_certificate_jwt' must be defined
-intended_use_id:
+intended_use_id: "${VERIFIER_INTENDED_USE_ID}"
 registration_certificate_jwt:
 
 # WUA trust validator url, available at https://github.com/eu-digital-identity-wallet/eudi-srv-trust-validator
@@ -156,6 +157,13 @@ credential_auth_methods:
     - eu.europa.ec.eudi.age_verification_mdoc
     - eu.europa.ec.eudi.age_verification_mdoc_passport
     - eu.europa.ec.eudi.learning_credential_vc_sd_jwt
+    # WE BUILD SCA attestations, here to provision test cards for the PA2
+    # payment demo through the form. The rulebooks (rb-sca-card-dpc 4.1) want
+    # issuance only after a PID presentation, i.e. PID_login only, but that
+    # path needs a verifier our wallet trusts, and the demo itself issues
+    # nothing: its cards are pre-loaded.
+    - eu.webuildconsortium.sca.user_mdoc
+    - eu.webuildconsortium.sca.card_dpc_sd_jwt
 
 # ============================================================================
 # COUNTRIES CONFIGURATION
@@ -238,6 +246,9 @@ countries:
       - "eu.europa.ec.eudi.employee_mdoc"
       - "eu.europa.ec.eudi.pid_mdoc_deferred"
       - "eu.europa.ec.eudi.learning_credential_vc_sd_jwt"
+      # WE BUILD SCA attestations, see credential_auth_methods
+      - "eu.webuildconsortium.sca.user_mdoc"
+      - "eu.webuildconsortium.sca.card_dpc_sd_jwt"
 
 
   PT:
