@@ -19,6 +19,7 @@ import pytest
 from unittest.mock import MagicMock, patch, ANY
 import datetime
 import json
+import uuid
 from app.dynamic_func import (
     dynamic_formatter,
     formatter,
@@ -480,6 +481,60 @@ class TestUpdateDatesAndSpecialClaims:
             "id": "IA_ID",
             "name": "IA_NAME",
         }
+
+    def test_attestation_legal_category_from_issuer_config(self):
+        """The legal category is the credential's own, from its issuer_config."""
+        issuer_config = {"attestation_legal_category": "non-qualified-EAA"}
+        data = {}
+
+        update_dates_and_special_claims(
+            data,
+            {"attestation_legal_category"},
+            "",
+            MOCK_TODAY,
+            MOCK_TODAY,
+            {"scope": "test_scope", "issuer_config": issuer_config},
+            issuer_config,
+        )
+
+        assert data["attestation_legal_category"] == "non-qualified-EAA"
+
+    def test_credential_id_is_a_new_urn_uuid_each_time(self):
+        """credential_id identifies the issued credential, so it never repeats."""
+        ids = []
+        for _ in range(2):
+            data = {}
+            update_dates_and_special_claims(
+                data,
+                {"credential_id"},
+                "",
+                MOCK_TODAY,
+                MOCK_TODAY,
+                self.MOCK_CREDENTIAL,
+                self.MOCK_CREDENTIAL["issuer_config"],
+            )
+            assert data["credential_id"].startswith("urn:uuid:")
+            uuid.UUID(data["credential_id"].removeprefix("urn:uuid:"))
+            ids.append(data["credential_id"])
+
+        assert ids[0] != ids[1]
+
+    def test_rulebook_claims_only_when_issuer_filled(self):
+        """Neither claim is added to a credential that does not declare it."""
+        data = {}
+
+        update_dates_and_special_claims(
+            data,
+            {"issuing_authority"},
+            "",
+            MOCK_TODAY,
+            MOCK_TODAY,
+            self.MOCK_CREDENTIAL,
+            self.MOCK_CREDENTIAL["issuer_config"],
+        )
+
+        assert "attestation_legal_category" not in data
+        assert "credential_id" not in data
 
 
 # --- Test `normalize_list_and_type_fields` ---

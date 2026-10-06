@@ -81,7 +81,8 @@
          "organization_id":"EUDI Wallet Reference Implementation",
          "validity":1,
          "organization_name":"Test SCA issuer",
-         "namespace":"eu.webuildconsortium.sca.user.1"
+         "namespace":"eu.webuildconsortium.sca.user.1",
+         "attestation_legal_category":"non-qualified-EAA"
       }
    }
 }

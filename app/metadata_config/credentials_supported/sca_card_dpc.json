@@ -1,7 +1,7 @@
 {
    "eu.webuildconsortium.sca.card_dpc_sd_jwt":{
       "format":"dc+sd-jwt",
-      "vct":"https://issuer.bank.example/credentials/sca/card-dpc/1.0",
+      "vct":"https://demo.eudiw.grnet.gr/issuer/credentials/sca/card-dpc/1.0",
       "scope":"eu.webuildconsortium.sca.card_dpc_sd_jwt",
       "cryptographic_binding_methods_supported":[
          "jwk"
@@ -92,7 +92,8 @@
          "issuing_authority":"Test SCA issuer",
          "organization_id":"EUDI Wallet Reference Implementation",
          "validity":730,
-         "organization_name":"Test SCA issuer"
+         "organization_name":"Test SCA issuer",
+         "attestation_legal_category":"non-qualified-EAA"
       }
    }
 }
