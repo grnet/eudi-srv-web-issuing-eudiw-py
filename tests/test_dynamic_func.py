@@ -519,8 +519,29 @@ class TestUpdateDatesAndSpecialClaims:
 
         assert ids[0] != ids[1]
 
+    def test_card_network_and_card_id_from_the_issuer(self):
+        """A test card: network as configured, card_id a fresh opaque UUID."""
+        issuer_config = {"network": "mastercard"}
+        cards = []
+        for _ in range(2):
+            data = {}
+            update_dates_and_special_claims(
+                data,
+                {"network", "card_id"},
+                "",
+                MOCK_TODAY,
+                MOCK_TODAY,
+                {"scope": "test_scope", "issuer_config": issuer_config},
+                issuer_config,
+            )
+            assert data["network"] == "mastercard"
+            uuid.UUID(data["card_id"])
+            cards.append(data["card_id"])
+
+        assert cards[0] != cards[1]
+
     def test_rulebook_claims_only_when_issuer_filled(self):
-        """Neither claim is added to a credential that does not declare it."""
+        """No rulebook claim is added to a credential that does not declare it."""
         data = {}
 
         update_dates_and_special_claims(
@@ -535,6 +556,8 @@ class TestUpdateDatesAndSpecialClaims:
 
         assert "attestation_legal_category" not in data
         assert "credential_id" not in data
+        assert "network" not in data
+        assert "card_id" not in data
 
 
 # --- Test `normalize_list_and_type_fields` ---

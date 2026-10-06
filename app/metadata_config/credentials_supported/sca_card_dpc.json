@@ -45,7 +45,6 @@
                   "credential_id"
                ],
                "mandatory":true,
-               "value_type":"string",
                "source":"issuer",
                "display":[
                   {
@@ -59,8 +58,7 @@
                   "network"
                ],
                "mandatory":true,
-               "value_type":"string",
-               "source":"user",
+               "source":"issuer",
                "display":[
                   {
                      "name":"Payment Network",
@@ -73,8 +71,7 @@
                   "card_id"
                ],
                "mandatory":false,
-               "value_type":"string",
-               "source":"user",
+               "source":"issuer",
                "display":[
                   {
                      "name":"Card ID",
@@ -102,7 +99,8 @@
          "organization_id":"EUDI Wallet Reference Implementation",
          "validity":730,
          "organization_name":"Test SCA issuer",
-         "attestation_legal_category":"non-qualified-EAA"
+         "attestation_legal_category":"non-qualified-EAA",
+         "network":"mastercard"
       }
    }
 }

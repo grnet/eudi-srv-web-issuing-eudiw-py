@@ -144,6 +144,7 @@ class ConfService:
             "validity": sca_card_dpc_validity,
             "organization_name": "Test SCA issuer",
             "attestation_legal_category": "non-qualified-EAA",
+            "network": "mastercard",
         },
     }
 
