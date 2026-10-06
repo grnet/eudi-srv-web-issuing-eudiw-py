@@ -122,6 +122,9 @@ credential_auth_methods:
     - eu.europa.ec.eudi.hiid_mdoc
     - eu.europa.ec.eudi.tax_mdoc
     - eu.europa.ec.eudi.msisdn_mdoc
+    # WE BUILD SCA attestations: present a PID, then fill in the rest
+    - eu.webuildconsortium.sca.user_mdoc
+    - eu.webuildconsortium.sca.card_dpc_sd_jwt
 
   country_selection:
     - eu.europa.ec.eudi.loyalty_mdoc
