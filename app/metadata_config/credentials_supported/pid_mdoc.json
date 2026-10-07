@@ -50,8 +50,16 @@
             "name":"PID (MSO Mdoc)",
             "locale":"en",
             "logo":{
-               "uri":"https://examplestate.com/public/pid.png",
-               "alt_text":"A square figure of a PID"
+               "uri":"https://demo.eudiw.grnet.gr/frontend/static/logo_gov_gr_seal.png",
+               "alt_text":"Coat of arms of Greece"
+            }
+         },
+         {
+            "name":"PID (MSO Mdoc)",
+            "locale":"el",
+            "logo":{
+               "uri":"https://demo.eudiw.grnet.gr/frontend/static/logo_gov_gr_seal.png",
+               "alt_text":"Εθνόσημο της Ελλάδας"
             }
          }
       ],
