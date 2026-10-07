@@ -17,6 +17,7 @@
 ###############################################################################
 import datetime
 import json
+import secrets
 import uuid
 from flask import session
 from misc import (
@@ -256,6 +257,68 @@ def update_dates_and_special_claims(
 
     if "card_id" in issuer_claims:
         data["card_id"] = str(uuid.uuid4())
+
+
+def sca_card_choice(credentials_requested):
+    """The form field in which the user picks the card an SCA-Card (DPC) is
+    for, shown by its card art, or None if no requested credential has cards
+    configured. A test issuer stands in for the card issuer, which would know
+    the user's cards."""
+    credentials_supported = oidc_metadata["credential_configurations_supported"]
+    for credential_id in credentials_requested:
+        config = (
+            credentials_supported.get(credential_id, {})
+            .get("issuer_config", {})
+            .get("card_display")
+        )
+        if config:
+            return {
+                "type": "card_choice",
+                "mandatory": True,
+                "options": [
+                    {
+                        "value": product["alias"],
+                        "label": product["alias"],
+                        "image_url": product["card_art"][0]["image_url"],
+                    }
+                    for product in config["products"]
+                ],
+            }
+    return None
+
+
+def sca_card_display(issuer_config, card=None):
+    """The display meta-data of an SCA-Card (DPC) attestation (rb-sca-card-dpc,
+    section 2.9), or None if the credential has none configured.
+
+    It is unsigned and goes in the credential response's display array, not
+    in the credential (sections 2.9 and 4.1). A test issuer stands in for the
+    card issuer, so the card is the configured product the user picked
+    (sca_card_choice), or the first, and its last four digits are made up, as
+    card_id is. The network branding is for the credential's own network, as
+    IR-04 requires.
+    """
+    config = issuer_config.get("card_display")
+    if not config:
+        return None
+
+    product = next(
+        (p for p in config["products"] if p["alias"] == card),
+        config["products"][0],
+    )
+    card = {}
+    if "type" in config:
+        card["type"] = config["type"]
+    card["last_four"] = f"{secrets.randbelow(10000):04d}"
+    card["card_art"] = product["card_art"]
+    card["alias"] = product["alias"]
+    if "issuer" in config:
+        card["issuer"] = config["issuer"]
+    card["network_branding"] = {
+        "network": issuer_config["network"],
+        "branding": config["network_branding"],
+    }
+    return {"card": card}
 
 
 def normalize_list_and_type_fields(data, attributes_req, attributes_req2, scope=None):

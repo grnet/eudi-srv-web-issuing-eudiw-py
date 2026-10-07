@@ -36,6 +36,7 @@ import segno
 from app.redirect_func import post_redirect_with_payload
 from misc import getAttributesForm, getAttributesForm2
 from formatter_func import cbor2elems
+from dynamic_func import sca_card_choice
 
 from app.validate_vp_token import validate_vp_token
 from .app_config.config_service import ConfService as cfgservice
@@ -231,6 +232,11 @@ def getpidoid4vp():
             )
 
         attributesForm2 = getAttributesForm2(current_session.credentials_requested)
+
+        # The user picks the card an SCA-Card (DPC) is for, by its card art.
+        card_choice = sca_card_choice(current_session.credentials_requested)
+        if card_choice:
+            attributesForm["card"] = card_choice
 
         for doctype in mdoc_json:
             for attribute, value in mdoc_json[doctype]:

@@ -100,7 +100,47 @@
          "validity":730,
          "organization_name":"Test SCA issuer",
          "attestation_legal_category":"non-qualified-EAA",
-         "network":"mastercard"
+         "network":"mastercard",
+         "card_display":{
+            "type":{
+               "code":"CREDIT",
+               "label":"Credit card"
+            },
+            "issuer":{
+               "branding":{
+                  "name":"Test SCA issuer"
+               }
+            },
+            "network_branding":{
+               "name":"Mastercard",
+               "logo":[
+                  {
+                     "theme":"DEFAULT",
+                     "image_url":"https://demo.eudiw.grnet.gr/frontend/static/mastercard_logo.png"
+                  }
+               ]
+            },
+            "products":[
+               {
+                  "alias":"Mastercard",
+                  "card_art":[
+                     {
+                        "theme":"DEFAULT",
+                        "image_url":"https://demo.eudiw.grnet.gr/frontend/static/card_art_mastercard.png"
+                     }
+                  ]
+               },
+               {
+                  "alias":"Gold Mastercard",
+                  "card_art":[
+                     {
+                        "theme":"DEFAULT",
+                        "image_url":"https://demo.eudiw.grnet.gr/frontend/static/goldcard_art_mastercard.png"
+                     }
+                  ]
+               }
+            ]
+         }
       }
    }
 }

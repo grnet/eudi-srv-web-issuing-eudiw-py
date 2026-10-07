@@ -57,7 +57,7 @@ from misc import (
     calculate_age,
     vct2doctype,
 )
-from dynamic_func import dynamic_formatter
+from dynamic_func import dynamic_formatter, sca_card_display
 from app import oidc_metadata
 from app import session_manager
 from app import CONFIGURATION
@@ -781,6 +781,16 @@ def credentialCreation(credential_request, data, country, session_id):
             credential_response["credential_responses"].append(
                 {"credential": pdata}
             ) """
+
+    # The card's display meta-data, once for the card that all the credentials
+    # of a batch are for (rb-sca-card-dpc, sections 2.9 and 4.1).
+    if credential_response["credentials"]:
+        card_display = sca_card_display(
+            credentials_supported[scope].get("issuer_config", {}),
+            card=data.get("card") if isinstance(data, dict) else None,
+        )
+        if card_display:
+            credential_response["display"] = [card_display]
 
     return credential_response
 
