@@ -57,7 +57,7 @@ from misc import (
     calculate_age,
     vct2doctype,
 )
-from dynamic_func import dynamic_formatter, sca_card_display
+from dynamic_func import dynamic_formatter, sca_card_choice, sca_card_display
 from app import oidc_metadata
 from app import session_manager
 from app import CONFIGURATION
@@ -195,6 +195,11 @@ def dynamic_R1(country):
         optional_attributes_raw = getAttributesForm2(
             current_session.credentials_requested
         )
+
+        # The user picks the card an SCA-Card (DPC) is for, by its card art.
+        card_choice = sca_card_choice(current_session.credentials_requested)
+        if card_choice:
+            mandatory_attributes["card"] = card_choice
 
         optional_attributes_filtered = {
             key: value
