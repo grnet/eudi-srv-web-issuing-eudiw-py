@@ -17,6 +17,7 @@
 ###############################################################################
 import datetime
 import json
+import re
 import secrets
 import uuid
 from flask import session
@@ -259,31 +260,44 @@ def update_dates_and_special_claims(
         data["card_id"] = str(uuid.uuid4())
 
 
+def _made_up_last_four():
+    return f"{secrets.randbelow(10000):04d}"
+
+
 def sca_card_choice(credentials_requested):
     """The form field in which the user picks the card an SCA-Card (DPC) is
-    for, shown by its card art, or None if no requested credential has cards
-    configured. A test issuer stands in for the card issuer, which would know
-    the user's cards."""
+    for, shown by its card art with its last four digits and expiry, or None
+    if no requested credential has cards configured.
+
+    A test issuer stands in for the card issuer, which would know the user's
+    cards, so each card's last four digits are made up here, and travel in
+    the option's value, "<alias>|<last four>", to sca_card_display. The
+    expiry is the credential's, from its validity; the display meta-data has
+    no expiry (rb-sca-card-dpc, section 2.9), so it is shown here only.
+    """
     credentials_supported = oidc_metadata["credential_configurations_supported"]
     for credential_id in credentials_requested:
-        config = (
-            credentials_supported.get(credential_id, {})
-            .get("issuer_config", {})
-            .get("card_display")
-        )
+        issuer_config = credentials_supported.get(credential_id, {}).get("issuer_config", {})
+        config = issuer_config.get("card_display")
         if config:
-            return {
-                "type": "card_choice",
-                "mandatory": True,
-                "options": [
+            expiry = None
+            if "validity" in issuer_config:
+                expiry = (
+                    datetime.date.today() + datetime.timedelta(days=issuer_config["validity"])
+                ).strftime("%m/%y")
+            options = []
+            for product in config["products"]:
+                last_four = _made_up_last_four()
+                options.append(
                     {
-                        "value": product["alias"],
+                        "value": f"{product['alias']}|{last_four}",
                         "label": product["alias"],
                         "image_url": product["card_art"][0]["image_url"],
+                        "last_four": last_four,
+                        "expiry": expiry,
                     }
-                    for product in config["products"]
-                ],
-            }
+                )
+            return {"type": "card_choice", "mandatory": True, "options": options}
     return None
 
 
@@ -293,23 +307,26 @@ def sca_card_display(issuer_config, card=None):
 
     It is unsigned and goes in the credential response's display array, not
     in the credential (sections 2.9 and 4.1). A test issuer stands in for the
-    card issuer, so the card is the configured product the user picked
-    (sca_card_choice), or the first, and its last four digits are made up, as
-    card_id is. The network branding is for the credential's own network, as
-    IR-04 requires.
+    card issuer, so the card is the one the user picked, "<alias>|<last four>"
+    from sca_card_choice, else the first configured product with made-up
+    digits, as card_id is. The network branding is for the credential's own
+    network, as IR-04 requires.
     """
     config = issuer_config.get("card_display")
     if not config:
         return None
 
+    alias, _, last_four = (card or "").rpartition("|")
+    if not re.fullmatch(r"[0-9]{4}", last_four):
+        last_four = _made_up_last_four()
     product = next(
-        (p for p in config["products"] if p["alias"] == card),
+        (p for p in config["products"] if p["alias"] == alias),
         config["products"][0],
     )
     card = {}
     if "type" in config:
         card["type"] = config["type"]
-    card["last_four"] = f"{secrets.randbelow(10000):04d}"
+    card["last_four"] = last_four
     card["card_art"] = product["card_art"]
     card["alias"] = product["alias"]
     if "issuer" in config:
