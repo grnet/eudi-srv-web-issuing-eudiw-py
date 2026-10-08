@@ -1041,6 +1041,14 @@ def presentation_formatter(cleaned_data: dict) -> dict:
             {"issuing_country": current_session.country}
         )
 
+        # The card the user picked, shown as on the form, so that they recognise
+        # it before issuance (rb-sca-card-dpc, sections 2.9 and 4.1).
+        card_display = sca_card_display(doctype_config, card=cleaned_data.get("card"))
+        if card_display:
+            presentation_data[credential]["card_display"] = dict(
+                card_display["card"], expiry=expiry.strftime("%m/%y")
+            )
+
         if credential_requested == "eu.europa.ec.eudi.seafarer_mdoc":
             presentation_data[credential].update(
                 {
