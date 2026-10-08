@@ -46,7 +46,7 @@
            "name":"PID (SD-JWT VC)",
            "locale":"en",
            "logo":{
-              "uri":"https://demo.eudiw.grnet.gr/frontend/static/logo_gov_gr_seal.png",
+              "uri":"https://demo.eudiw.grnet.gr/frontend/static/logo_gov_gr_emblem_tile.png",
               "alt_text":"Coat of arms of Greece"
            }
         },
@@ -54,7 +54,7 @@
            "name":"PID (SD-JWT VC)",
            "locale":"el",
            "logo":{
-              "uri":"https://demo.eudiw.grnet.gr/frontend/static/logo_gov_gr_seal.png",
+              "uri":"https://demo.eudiw.grnet.gr/frontend/static/logo_gov_gr_emblem_tile.png",
               "alt_text":"Εθνόσημο της Ελλάδας"
            }
         }
