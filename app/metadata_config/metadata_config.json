@@ -51,11 +51,11 @@
    },
    "display":[
       {
-         "name":"gov.gr BETA Demo Issuer",
+         "name":"GRNET Demo Issuer",
          "locale":"en",
          "logo":{
-            "uri":"https://demo.eudiw.grnet.gr/frontend/static/issuer_logo_govgr_beta.png",
-            "alt_text":"gov.gr beta logo"
+            "uri":"https://demo.eudiw.grnet.gr/frontend/static/logo_gov_gr_emblem_tile_beta.png",
+            "alt_text":"Coat of arms of Greece on a BETA background"
          }
       }
    ],
