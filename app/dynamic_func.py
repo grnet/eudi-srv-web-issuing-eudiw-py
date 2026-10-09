@@ -309,8 +309,9 @@ def sca_card_display(issuer_config, card=None):
     in the credential (sections 2.9 and 4.1). A test issuer stands in for the
     card issuer, so the card is the one the user picked, "<alias>|<last four>"
     from sca_card_choice, else the first configured product with made-up
-    digits, as card_id is. The network branding is for the credential's own
-    network, as IR-04 requires.
+    digits, as card_id is. The card issuer is the product's own, else the
+    configuration's, as each card may be a different issuer's. The network
+    branding is for the credential's own network, as IR-04 requires.
     """
     config = issuer_config.get("card_display")
     if not config:
@@ -329,8 +330,9 @@ def sca_card_display(issuer_config, card=None):
     card["last_four"] = last_four
     card["card_art"] = product["card_art"]
     card["alias"] = product["alias"]
-    if "issuer" in config:
-        card["issuer"] = config["issuer"]
+    issuer = product.get("issuer", config.get("issuer"))
+    if issuer:
+        card["issuer"] = issuer
     card["network_branding"] = {
         "network": issuer_config["network"],
         "branding": config["network_branding"],

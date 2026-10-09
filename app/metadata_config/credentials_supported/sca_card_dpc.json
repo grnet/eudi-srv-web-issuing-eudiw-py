@@ -32,7 +32,7 @@
                "locale":"en",
                "description":"Digital Payment Credential for payment authentication with Strong Customer Authentication.",
                "logo":{
-                  "uri":"https://issuer.bank.example/assets/sca-card-logo.png",
+                  "uri":"https://demo.eudiw.grnet.gr/frontend/static/mastercard_logo.png",
                   "alt_text":"SCA Card (DPC) credential logo"
                },
                "background_color":"#1A3C8F",
@@ -106,11 +106,6 @@
                "code":"CREDIT",
                "label":"Credit card"
             },
-            "issuer":{
-               "branding":{
-                  "name":"Test SCA issuer"
-               }
-            },
             "network_branding":{
                "name":"Mastercard",
                "logo":[
@@ -128,7 +123,18 @@
                         "theme":"DEFAULT",
                         "image_url":"https://demo.eudiw.grnet.gr/frontend/static/card_art_mastercard.png"
                      }
-                  ]
+                  ],
+                  "issuer":{
+                     "branding":{
+                        "name":"Partner Bank",
+                        "logo":[
+                           {
+                              "theme":"DEFAULT",
+                              "image_url":"https://demo.eudiw.grnet.gr/frontend/static/partner_bank_logo.png"
+                           }
+                        ]
+                     }
+                  }
                },
                {
                   "alias":"Gold Mastercard",
@@ -137,7 +143,18 @@
                         "theme":"DEFAULT",
                         "image_url":"https://demo.eudiw.grnet.gr/frontend/static/goldcard_art_mastercard.png"
                      }
-                  ]
+                  ],
+                  "issuer":{
+                     "branding":{
+                        "name":"MC Demo Issuer",
+                        "logo":[
+                           {
+                              "theme":"DEFAULT",
+                              "image_url":"https://demo.eudiw.grnet.gr/frontend/static/mastercard_logo.png"
+                           }
+                        ]
+                     }
+                  }
                }
             ]
          }
