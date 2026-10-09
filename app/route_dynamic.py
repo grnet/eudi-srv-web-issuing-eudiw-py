@@ -1072,6 +1072,15 @@ def presentation_formatter(cleaned_data: dict) -> dict:
                 {"issuing_authority": doctype_config["issuing_authority"]}
             )
 
+        # A card's issuing authority is its issuer, the bank whose card the
+        # user picked; the country of the form it was asked for on means
+        # nothing for it (rb-sca-card-dpc, section 2.9).
+        if card_display:
+            card_issuer = card_display["card"].get("issuer", {}).get("branding", {}).get("name")
+            if card_issuer:
+                presentation_data[credential]["issuing_authority"] = card_issuer
+            presentation_data[credential].pop("issuing_country", None)
+
         if "credential_type" in doctype_config:
             presentation_data[credential].update(
                 {"credential_type": doctype_config["credential_type"]}
