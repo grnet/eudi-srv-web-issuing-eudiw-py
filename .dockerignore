@@ -9,3 +9,6 @@ venv
 .env
 *.md
 tests/
+
+# macOS Finder metadata
+**/.DS_Store
