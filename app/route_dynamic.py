@@ -57,7 +57,12 @@ from misc import (
     calculate_age,
     vct2doctype,
 )
-from dynamic_func import dynamic_formatter, sca_card_choice, sca_card_display
+from dynamic_func import (
+    check_form_data,
+    dynamic_formatter,
+    sca_card_choice,
+    sca_card_display,
+)
 from app import oidc_metadata
 from app import session_manager
 from app import CONFIGURATION
@@ -397,8 +402,11 @@ def red():
         presentation_data[credential].update(
             {"estimated_expiry_date": expiry.strftime("%Y-%m-%d")}
         )
+        # As issued: a configured issuing country replaces the country the
+        # user authenticated with, e.g. "FC" for the form
+        # (dynamic_func.update_dates_and_special_claims).
         presentation_data[credential].update(
-            {"issuing_country": current_session.country}
+            {"issuing_country": doctype_config.get("issuing_country", current_session.country)}
         )
 
         if credential_requested == "eu.europa.ec.eudi.ehic_sd_jwt_vc":
@@ -768,9 +776,18 @@ def credentialCreation(credential_request, data, country, session_id):
             }
         )
 
-        pdata = dynamic_formatter(
-            format, scope, form_data, device_publickey, session_id
-        )
+        # The data checks (e.g. the IBAN's check digits, the rulebooks'
+        # conditional claims) normally fail at the form already
+        # (check_form_data); here they are an OID4VCI error, not a 500.
+        try:
+            pdata = dynamic_formatter(
+                format, scope, form_data, device_publickey, session_id
+            )
+        except ValueError as e:
+            return {
+                "error": "invalid_credential_request",
+                "error_description": str(e),
+            }
 
         credential_response["credentials"].append({"credential": pdata})
 
@@ -817,6 +834,18 @@ def auth():
         return redirect(f"{CONFIGURATION['service_url']}/dynamic/")
 
 
+def _without_gaps(value):
+    """The parsed form data without the {} and None that form_formatter pads
+    unused list indexes with. A list item removed in the form leaves its
+    index unused; padding it would issue an empty entry. A real item is
+    never empty, as empty fields are not parsed."""
+    if isinstance(value, dict):
+        return {key: _without_gaps(child) for key, child in value.items()}
+    if isinstance(value, list):
+        return [_without_gaps(e) for e in value if e is not None and e != {}]
+    return value
+
+
 def form_formatter(form_data: dict) -> dict:
     cleaned_data = {}
 
@@ -838,6 +867,10 @@ def form_formatter(form_data: dict) -> dict:
         if not value or key in ["proceed", "Cancelled", "NumberCategories"]:
             continue
         if "option" in key and "on" in value:
+            continue
+        # The radio buttons of a choice between groups (e.g. a natural or a
+        # legal person) only steer the form; the chosen group is the data.
+        if key.endswith("_option"):
             continue
 
         parts = key_pattern.findall(key)
@@ -871,6 +904,8 @@ def form_formatter(form_data: dict) -> dict:
             current_level[idx] = value
         else:
             current_level[final_key] = value
+
+    cleaned_data = _without_gaps(cleaned_data)
 
     # Fixing places of work data send after restructuring project for nested issues
     if "places_of_work" in cleaned_data and isinstance(
@@ -1037,8 +1072,11 @@ def presentation_formatter(cleaned_data: dict) -> dict:
         presentation_data[credential].update(
             {"estimated_expiry_date": expiry.strftime("%Y-%m-%d")}
         )
+        # As issued: a configured issuing country replaces the country the
+        # user authenticated with, e.g. "FC" for the form
+        # (dynamic_func.update_dates_and_special_claims).
         presentation_data[credential].update(
-            {"issuing_country": current_session.country}
+            {"issuing_country": doctype_config.get("issuing_country", current_session.country)}
         )
 
         # The card the user picked, shown as on the form, so that they recognise
@@ -1198,11 +1236,24 @@ def Dynamic_form():
 
     cleaned_data = form_formatter(form_data)
 
+    target_url = CONFIGURATION["frontend"]["frontends_config"][current_session.frontend_id]["url"]
+
+    # Data the credentials cannot be issued from is turned down now, with the
+    # reason, rather than when the wallet asks for the credential.
+    problem = check_form_data(cleaned_data, current_session.credentials_requested)
+    if problem:
+        return post_redirect_with_payload(
+            target_url=f"{target_url}/internal_error",
+            data_payload={
+                "error": f"{problem}. Please go back and correct the form.",
+                "error_code": "Invalid form data",
+                "error_type": 400,
+            },
+        )
+
     session_manager.update_user_data(session_id=session_id, user_data=cleaned_data)
 
     presentation_data = presentation_formatter(cleaned_data=cleaned_data)
-
-    target_url = CONFIGURATION["frontend"]["frontends_config"][current_session.frontend_id]["url"]
 
     return post_redirect_with_payload(
         target_url=f"{target_url}/display_authorization",

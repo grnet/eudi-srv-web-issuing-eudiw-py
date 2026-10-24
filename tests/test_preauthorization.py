@@ -102,6 +102,31 @@ def mock_configuration():
 class TestPreauthRed:
     """Test the /preauth route."""
 
+    @patch("app.preauthorization.sca_card_choice")
+    @patch("app.preauthorization.request_preauth_token", return_value="test_session_id")
+    @patch("app.preauthorization.getAttributesForm", return_value={})
+    @patch("app.preauthorization.getAttributesForm2", return_value={})
+    @patch("app.preauthorization.post_redirect_with_payload")
+    def test_preauth_red_offers_the_card_choice(
+        self, mock_post_redirect, mock_getattr2, mock_getattr1, mock_request_token,
+        mock_card_choice, client, mock_session_manager, mock_configuration,
+    ):
+        """An SCA-Card (DPC) asked for with a pre-authorized offer gets the
+        same card choice as in the other form flows."""
+        from flask import Response
+
+        choice = {"type": "card_choice", "mandatory": True, "options": []}
+        mock_card_choice.return_value = choice
+        mock_post_redirect.return_value = Response("redirect", status=302)
+        with client.session_transaction() as sess:
+            sess["credential_offer_URI"] = "haip-vci://"
+
+        client.get('/preauth?credentials_id=["eu.webuildconsortium.sca.card_dpc_sd_jwt"]')
+
+        mock_card_choice.assert_called_once_with(["eu.webuildconsortium.sca.card_dpc_sd_jwt"])
+        payload = mock_post_redirect.call_args.kwargs["data_payload"]
+        assert payload["mandatory_attributes"]["card"] == choice
+
     @patch("app.preauthorization.request_preauth_token")
     @patch("app.preauthorization.getAttributesForm")
     @patch("app.preauthorization.getAttributesForm2")
@@ -223,6 +248,33 @@ class TestPreauthRed:
 
 class TestPreauthForm:
     """Test the /preauth_form route."""
+
+    @patch("app.preauthorization.check_form_data", return_value="The IBAN check digits are wrong")
+    @patch("app.preauthorization.form_formatter", return_value={"iban": "DE00"})
+    @patch("app.preauthorization.post_redirect_with_payload")
+    def test_preauth_form_turns_down_bad_data(
+        self,
+        mock_post_redirect,
+        mock_form_formatter,
+        mock_check,
+        client,
+        mock_session_manager,
+        mock_configuration,
+    ):
+        """Data the credentials cannot be issued from is turned down at the
+        form, with the reason, and not stored."""
+        from flask import Response
+
+        mock_post_redirect.return_value = Response("redirect", status=302)
+        with client.session_transaction() as sess:
+            sess["session_id"] = "test_session_id"
+
+        client.post("/preauth_form", data={"iban": "DE00", "proceed": "true"})
+
+        kwargs = mock_post_redirect.call_args.kwargs
+        assert kwargs["target_url"].endswith("/internal_error")
+        assert kwargs["data_payload"]["error"].startswith("The IBAN check digits are wrong")
+        mock_session_manager.update_user_data.assert_not_called()
 
     @patch("app.preauthorization.form_formatter")
     @patch("app.preauthorization.presentation_formatter")
