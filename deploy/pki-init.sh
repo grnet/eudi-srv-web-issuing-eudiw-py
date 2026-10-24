@@ -77,6 +77,29 @@ if [ "$(openssl pkey -in "$DS_DIR/signing.key" -pubout)" != "$(openssl x509 -in 
 fi
 echo "pki-init: document signer $(openssl x509 -in "$DS_DIR/signing.pem" -noout -subject)"
 
+# Optional: GRNET's WE BUILD-onboarded certificate, the one on the Commission's
+# PID providers list, signs the SD-JWT VC PIDs (pid_sd_jwt in the issuer config).
+# Without it the document signer signs everything. Rewritten on every run, and
+# removed when not provided, so the issuer config's optional entry is skipped.
+PID_DIR="$OUT/ds-pid"
+PID_SD_JWT_KEY_FILE="${PID_SD_JWT_KEY_FILE:-/run/secrets/pid-sd-jwt-key}"
+rm -rf "$PID_DIR"
+if [ -n "${PID_SD_JWT_CERT_PEM:-}" ] && [ -s "$PID_SD_JWT_KEY_FILE" ]; then
+    mkdir -p "$PID_DIR"
+    # The leaf only: openssl x509 reads the first certificate of a bundle.
+    printf '%s\n' "$PID_SD_JWT_CERT_PEM" | openssl x509 -out "$PID_DIR/signing.pem"
+    openssl x509 -in "$PID_DIR/signing.pem" -outform der -out "$PID_DIR/signing.der"
+    printf '%s\n' "$(cat "$PID_SD_JWT_KEY_FILE")" > "$PID_DIR/signing.key"
+    if [ "$(openssl pkey -in "$PID_DIR/signing.key" -pubout)" != "$(openssl x509 -in "$PID_DIR/signing.pem" -noout -pubkey)" ]; then
+        echo "pki-init: the PID SD-JWT key does not belong to its certificate" >&2
+        exit 1
+    fi
+    chmod 644 "$PID_DIR"/*
+    echo "pki-init: PID SD-JWT signer $(openssl x509 -in "$PID_DIR/signing.pem" -noout -subject)"
+else
+    echo "pki-init: no PID SD-JWT signer; the document signer signs every credential"
+fi
+
 # Trust our IACA for PIDs presented back to the issuer.
 printf '%s\n' "$IACA_PEM" > "$CERT_DIR/root-ca-grnet.pem"
 

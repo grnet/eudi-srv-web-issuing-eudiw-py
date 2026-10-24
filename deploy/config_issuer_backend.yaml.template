@@ -172,7 +172,9 @@ credential_auth_methods:
 # Currently only _default is supported for both keys and custom_modifiers
 # Eventually keys will be separated by frontend and custom_modifiers per credential_configuration_id
 #
-# Every country signs with GRNET's document signer.
+# Every country signs with GRNET's document signer, except SD-JWT VC PIDs when
+# the deploy provides pid_sd_jwt: GRNET's WE BUILD-onboarded certificate, the one
+# on the Commission's PID providers list (pki-init.sh lays it out in ds-pid/).
 # Connection types supported: oauth or openid
 
 countries:
@@ -185,6 +187,11 @@ countries:
         private_key_path: "/etc/eudiw/pid-issuer-dev/ds/signing.key"
         private_key_password: null
         certificate_path: "/etc/eudiw/pid-issuer-dev/ds/signing.der"
+      pid_sd_jwt:
+        optional: true
+        private_key_path: "/etc/eudiw/pid-issuer-dev/ds-pid/signing.key"
+        private_key_password: null
+        certificate_path: "/etc/eudiw/pid-issuer-dev/ds-pid/signing.der"
 
     supported_credential_ids:
       - "eu.europa.ec.eudi.pid_mdoc"
@@ -214,6 +221,11 @@ countries:
         private_key_path: "/etc/eudiw/pid-issuer-dev/ds/signing.key"
         private_key_password: null
         certificate_path: "/etc/eudiw/pid-issuer-dev/ds/signing.der"
+      pid_sd_jwt:
+        optional: true
+        private_key_path: "/etc/eudiw/pid-issuer-dev/ds-pid/signing.key"
+        private_key_password: null
+        certificate_path: "/etc/eudiw/pid-issuer-dev/ds-pid/signing.der"
 
     un_distinguishing_sign: "FC"
 
@@ -259,6 +271,11 @@ countries:
         private_key_path: "/etc/eudiw/pid-issuer-dev/ds/signing.key"
         private_key_password: null
         certificate_path: "/etc/eudiw/pid-issuer-dev/ds/signing.der"
+      pid_sd_jwt:
+        optional: true
+        private_key_path: "/etc/eudiw/pid-issuer-dev/ds-pid/signing.key"
+        private_key_password: null
+        certificate_path: "/etc/eudiw/pid-issuer-dev/ds-pid/signing.der"
 
     un_distinguishing_sign: "P"
 
@@ -292,6 +309,11 @@ countries:
         private_key_path: "/etc/eudiw/pid-issuer-dev/ds/signing.key"
         private_key_password: null
         certificate_path: "/etc/eudiw/pid-issuer-dev/ds/signing.der"
+      pid_sd_jwt:
+        optional: true
+        private_key_path: "/etc/eudiw/pid-issuer-dev/ds-pid/signing.key"
+        private_key_password: null
+        certificate_path: "/etc/eudiw/pid-issuer-dev/ds-pid/signing.der"
 
     supported_credential_ids:
       - "eu.europa.ec.eudi.pid_mdoc"

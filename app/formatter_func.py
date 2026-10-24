@@ -411,17 +411,25 @@ def sdjwtFormatter(PID, country, scope, session_id):
 
     claims.update(datafinal)
 
-    certificate_data = CONFIGURATION["countries"][country]["keys"]["_default"]["certificate"]
+    # GRNET fork: PIDs are signed with the pid_sd_jwt key when the deploy provides
+    # one, GRNET's WE BUILD-onboarded certificate, which is on the Commission's PID
+    # providers list. Everything else, and every mdoc, with _default.
+    country_keys = CONFIGURATION["countries"][country]["keys"]
+    signer = country_keys["_default"]
+    if vct == "urn:eudi:pid:1" and "private_key" in country_keys.get("pid_sd_jwt", {}):
+        signer = country_keys["pid_sd_jwt"]
+
+    certificate_data = signer["certificate"]
 
     certificate_base64 = base64.b64encode(certificate_data).decode("utf-8")
     x5c = {"x5c": []}
     x5c["x5c"].append(certificate_base64)
 
-    key_file = CONFIGURATION["countries"][country]["keys"]["_default"]["private_key"]
+    key_file = signer["private_key"]
 
     private_key = serialization.load_pem_private_key(
         key_file,
-        password=CONFIGURATION["countries"][country]["keys"]["_default"]["private_key_password"]
+        password=signer["private_key_password"]
     )
 
     priv_d = private_key.private_numbers().private_value

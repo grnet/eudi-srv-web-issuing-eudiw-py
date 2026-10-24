@@ -80,8 +80,12 @@ services:
       # Document signer and IACA certificates; the key is the ds-key secret.
       DS_CERT_PEM: ${DS_CERT_PEM:?from WEBUILD/pki/leaves/pid-ds-gr-01/pid-ds-gr-01.crt, see deploy/README.md}
       IACA_PEM: ${IACA_PEM:?from WEBUILD/pki/ca/root-ca-grnet.pem, see deploy/README.md}
+      # Optional PID SD-JWT signer, the WE BUILD-onboarded certificate; the key is
+      # the pid-sd-jwt-key secret. Empty: the document signer signs everything.
+      PID_SD_JWT_CERT_PEM: ${PID_SD_JWT_CERT_PEM:-}
     secrets:
       - ds-key
+      - pid-sd-jwt-key
     volumes:
       - pki:/etc/eudiw/pid-issuer-dev
     networks:
@@ -217,6 +221,10 @@ secrets:
   # Document signer key. A secret, so `docker inspect` does not show it.
   ds-key:
     environment: DS_KEY_PEM
+  # PID SD-JWT signer key. PID_SD_JWT_KEY_PEM must be set, empty if there is
+  # none: compose refuses a secret whose variable is unset.
+  pid-sd-jwt-key:
+    environment: PID_SD_JWT_KEY_PEM
 
 volumes:
   pki:

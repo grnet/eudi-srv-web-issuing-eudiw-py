@@ -82,7 +82,11 @@ def _process_config(config: dict) -> dict:
     # --- Country keys ---
     for country in config["countries"].values():
         for entry_name, entry in country["keys"].items():
-            # entry_name is either "_default" or a frontend UUID
+            # entry_name is "_default", a frontend UUID, or "pid_sd_jwt" (GRNET fork,
+            # see sdjwtFormatter). An optional entry whose key the deploy did not
+            # provide is skipped.
+            if entry.get("optional") and not os.path.exists(entry["private_key_path"]):
+                continue
             entry["private_key"] = _load_file(entry["private_key_path"])
             entry["certificate"] = _load_file(entry["certificate_path"])
 
