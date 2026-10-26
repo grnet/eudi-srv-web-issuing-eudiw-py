@@ -1375,6 +1375,25 @@ class TestFormFormatter:
         assert result["birth_date"] == "1990-01-01"
         assert result["issuing_country"] == "EU"
 
+    def test_removed_list_items_leave_no_empty_entries(self):
+        """Items removed in the form leave unused indexes; no empty entry is
+        issued for them."""
+        from app.route_dynamic import form_formatter
+
+        form_data = {
+            # products[1] was removed, and the first VAT line of products[2]
+            "products[0][name]": "Coffee",
+            "products[2][name]": "Tea",
+            "products[2][vats][1][vat_rate]": "13",
+        }
+
+        result = form_formatter(form_data)
+
+        assert result["products"] == [
+            {"name": "Coffee"},
+            {"name": "Tea", "vats": [{"vat_rate": "13"}]},
+        ]
+
     def test_skip_empty_values(self):
         """Test that empty values are skipped"""
         from app.route_dynamic import form_formatter
@@ -1777,6 +1796,17 @@ class TestPresentationFormatter:
 
         yield
         patch.stopall()
+
+    def test_issuing_country_as_issued(self):
+        """A configured issuing country is shown, as it is the one issued;
+        otherwise the country the user authenticated with."""
+        from app.route_dynamic import presentation_formatter
+
+        pid = self.mock_metadata["credential_configurations_supported"]["eu.europa.ec.eudi.pid_mdoc"]
+        assert presentation_formatter({})["PID (mDL)"]["issuing_country"] == "EU"
+
+        pid["issuer_config"]["issuing_country"] = "GR"
+        assert presentation_formatter({})["PID (mDL)"]["issuing_country"] == "GR"
 
     def test_basic_presentation_data_structure(self):
         """Test basic structure of presentation data"""

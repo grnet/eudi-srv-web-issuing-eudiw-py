@@ -186,6 +186,7 @@ def create_app(test_config=None):
         preauthorization,
         revocation,
         signed_metadata,
+        type_metadata,
     )
 
     app.register_blueprint(route_formatter.formatter)
@@ -195,6 +196,7 @@ def create_app(test_config=None):
     app.register_blueprint(route_dynamic.dynamic)
     app.register_blueprint(preauthorization.preauth)
     app.register_blueprint(signed_metadata.metadata)
+    app.register_blueprint(type_metadata.type_metadata)
 
     # config session
     app.config["SESSION_FILE_THRESHOLD"] = 50
@@ -224,8 +226,14 @@ def remove_keys(obj, keys_to_remove):
         }
         return new_obj if new_obj else None
     elif isinstance(obj, list):
-        new_list = [remove_keys(item, keys_to_remove) for item in obj]
-        new_list = [item for item in new_list if item is not None]
+        # Drop the items the removal left empty, but keep a None that was
+        # there: claim paths mark array elements with a null segment.
+        new_list = []
+        for item in obj:
+            cleaned = remove_keys(item, keys_to_remove)
+            if cleaned is None and item is not None:
+                continue
+            new_list.append(cleaned)
         return new_list if new_list else None
     else:
         return obj
