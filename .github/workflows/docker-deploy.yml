@@ -274,6 +274,10 @@ jobs:
           WALLET_PROVIDER_CERT_SHA256=$(openssl x509 -noout -fingerprint -sha256 <<< "$WALLET_PROVIDER_CERT_PEM" | cut -d= -f2)
           export WALLET_PROVIDER_CERT_PEM WALLET_PROVIDER_CERT_SHA256
 
+          # The CAs the wallet providers list must be signed under.
+          EC_LOTE_SIGNER_CAS_PEM=$(cat deploy/ec-lote-signer-cas.pem)
+          export EC_LOTE_SIGNER_CAS_PEM
+
           export COMPOSE_ENV_FILES=deploy/stack.env
 
           recreate=""

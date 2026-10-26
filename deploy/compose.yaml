@@ -56,9 +56,13 @@ services:
       # routes send this file as-is and config.json never reaches it.
       - source: oidc-metadata
         target: /app/openid-configuration.json
-      # The trusted wallet attester, in trusted_attesters_path.
+      # The trusted wallet attester, in trusted_attesters_path. Only used when
+      # the config names no wallet providers list.
       - source: wallet-provider-cert
         target: /etc/eudiw/pid-issuer-dev/oidc_trusted_attesters/wallet-provider.pem
+      # The CAs the wallet providers list must be signed under (lote_signer_ca_path).
+      - source: ec-lote-signer-cas
+        target: /etc/eudiw/pid-issuer-dev/oidc_lote/ec-lote-signer-cas.pem
     networks:
       # The alias is what OIDC_INTERNAL_URL dials.
       proxy-net:
@@ -216,6 +220,12 @@ configs:
   # The wallet provider's signing certificate, from its /jwks.
   wallet-provider-cert:
     content: ${WALLET_PROVIDER_CERT_PEM:?set by the deploy workflow}
+
+  # The Commission's LoTE signing chain, deploy/ec-lote-signer-cas.pem. Content,
+  # not file: a file config is a bind mount from this machine, which a remote
+  # DOCKER_HOST does not have.
+  ec-lote-signer-cas:
+    content: ${EC_LOTE_SIGNER_CAS_PEM:?from deploy/ec-lote-signer-cas.pem, set by the deploy workflow}
 
 secrets:
   # Document signer key. A secret, so `docker inspect` does not show it.
