@@ -287,10 +287,115 @@ def getMandatoryAttributes(claims, namespace):
     return attributes_form
 
 
+# Credentials already live that issue their single-occurrence groups as
+# one-element lists (EHIC: authentic_source). Holders and verifiers may rely
+# on that shape, so it is kept.
+KEEP_SINGLE_GROUPS_AS_LISTS = {"eu.europa.ec.eudi.ehic_sd_jwt_vc"}
+
+
+def claim_path(claim):
+    """A claim's path without its null (array element) segments. The
+    metadata paths are claims path pointers, with a null segment after every
+    array; the form and the issued data are walked by name only."""
+    return tuple(s for s in claim["path"] if s is not None)
+
+
+def is_array_group(claim, single_groups_as_objects=True):
+    """The form sends every group as a list. It is issued as one unless it
+    occurs at most once and is shaped into an object (shape_claims)."""
+    if not (claim.get("value_type") or "").endswith("_attributes"):
+        return False
+    max_count = claim.get("issuer_conditions", {}).get("cardinality", {}).get("max")
+    return max_count != 1 or not single_groups_as_objects
+
+
+def array_claims(claims, single_groups_as_objects=True):
+    """The claims (as claim_path gives them) issued as JSON arrays: the groups
+    is_array_group says stay lists, and any claim whose metadata path already
+    has a null segment after it (lists the issuer fills in itself)."""
+    arrays = set()
+    for claim in claims:
+        if "path" not in claim:
+            continue
+        if is_array_group(claim, single_groups_as_objects):
+            arrays.add(claim_path(claim))
+        names = []
+        for segment in claim["path"]:
+            if segment is None:
+                arrays.add(tuple(names))
+            else:
+                names.append(segment)
+    return arrays
+
+
+def with_array_segments(path, arrays):
+    """The claims path pointer for a claim_path: a null segment after every
+    array on the way to the claim."""
+    pointer = []
+    for i, segment in enumerate(path):
+        pointer.append(segment)
+        if tuple(path[: i + 1]) in arrays and i + 1 < len(path):
+            pointer.append(None)
+    return pointer
+
+
+def sd_flags(claims):
+    """The explicit selective_disclosure flags of the claims, keyed by
+    claim_path, so a flag applies to the claim in every array element."""
+    return {
+        claim_path(claim): claim["selective_disclosure"]
+        for claim in claims
+        if "path" in claim
+        and "overall_issuer_conditions" not in claim
+        and "selective_disclosure" in claim
+    }
+
+
+def is_disclosable(path, flags):
+    """Whether the issuer makes the claim at path (a claim_path) selectively
+    disclosable. A claim's own selective_disclosure flag decides; without
+    one, a top-level claim is disclosable, a second-level claim is if its
+    parent is, and a deeper claim is not. The one rule for both the issued
+    credential (formatter_func.sdjwtNestedClaims) and its published type
+    metadata (type_metadata._claims), so the two cannot disagree."""
+    path = tuple(path)
+    if path in flags:
+        return flags[path]
+    if len(path) == 1:
+        return True
+    if len(path) == 2:
+        return is_disclosable(path[:1], flags)
+    return False
+
+
+def _by_name(claims):
+    """The claims with claim_path paths, for the form builders below."""
+    return [
+        dict(claim, path=list(claim_path(claim))) if "path" in claim else claim
+        for claim in claims
+    ]
+
+
+def _form_hints(claim):
+    """Input hints a claim gives the form: a closed list of values (options),
+    free values besides them (other_values: {"label", "used_if"}), an input
+    pattern, and a condition on a sibling for the claim to be used
+    (used_if: {"attribute": ..., "values": [...]}; the form shows and
+    requires the claim only then). They live in issuer_conditions, which is
+    not published in the issuer metadata."""
+    conditions = claim.get("issuer_conditions", {})
+    return {
+        k: conditions[k]
+        for k in ("options", "other_values", "pattern", "used_if")
+        if k in conditions
+    }
+
+
 def getMandatoryAttributesSDJWT(claims):
     """
     Function to get mandatory attributes from credential in sd-jwt vc format
     """
+    claims = _by_name(claims)
     attributes_form = {}
 
     level1_claims = []
@@ -383,6 +488,7 @@ def getMandatoryAttributesSDJWT(claims):
                         "type": claim["value_type"],
                         "filled_value": None,
                         "mandatory": True,
+                        **_form_hints(claim),
                     }
                 }
             )
@@ -417,6 +523,7 @@ def getMandatoryAttributesSDJWT(claims):
             "mandatory": claim["mandatory"],
             "type": claim["value_type"],
             "source": claim["source"],
+            **_form_hints(claim),
         }
 
         if "issuer_conditions" in claim:
@@ -456,6 +563,7 @@ def getMandatoryAttributesSDJWT(claims):
                                 "value_type"
                             ],  # FIX: Use 'type' for consistency
                             "source": claim["source"],
+                            **_form_hints(claim),
                         }
                     }
                 )
@@ -467,6 +575,7 @@ def getOptionalAttributesSDJWT(claims):
     """
     Function to get optional attributes from credential in sd-jwt vc format
     """
+    claims = _by_name(claims)
     attributes_form = {}
 
     level1_claims = []
@@ -508,7 +617,13 @@ def getOptionalAttributesSDJWT(claims):
 
         if "value_type" in claim and attribute_name != "nationalities":
             attributes_form.update(
-                {attribute_name: {"type": claim["value_type"], "filled_value": None}}
+                {
+                    attribute_name: {
+                        "type": claim["value_type"],
+                        "filled_value": None,
+                        **_form_hints(claim),
+                    }
+                }
             )
 
         if "issuer_conditions" in claim and attribute_name != "nationalities":
@@ -518,7 +633,6 @@ def getOptionalAttributesSDJWT(claims):
                 ]["cardinality"]
 
     for claim in level2_claims:
-        attributes = {}
         attribute_name = claim["path"][0]
 
         if attribute_name not in attributes_form:
@@ -527,25 +641,24 @@ def getOptionalAttributesSDJWT(claims):
         attributes_form[attribute_name]["type"] = "list"
 
         level2_name = claim["path"][1]
-        attributes[level2_name] = {
+        attribute_details = {
             "mandatory": claim["mandatory"],
             "type": claim["value_type"],
             "source": claim["source"],
+            **_form_hints(claim),
         }
 
+        # Inside the attribute, as in getMandatoryAttributesSDJWT: next to it,
+        # the form took them for attributes of their own ("Cardinality").
         if "issuer_conditions" in claim:
             if "cardinality" in claim["issuer_conditions"]:
-                attributes["cardinality"] = claim["issuer_conditions"]["cardinality"]
+                attribute_details["cardinality"] = claim["issuer_conditions"]["cardinality"]
             if "not_used_if" in claim["issuer_conditions"]:
-                attributes["not_used_if"] = claim["issuer_conditions"]["not_used_if"]
+                attribute_details["not_used_if"] = claim["issuer_conditions"]["not_used_if"]
 
-        if "attributes" in attributes_form[attribute_name]:
-            if "cardinality" in attributes_form[attribute_name]["attributes"][0]:
-                attributes_form[attribute_name]["attributes"].append(attributes)
-            else:
-                attributes_form[attribute_name]["attributes"][0].update(attributes)
-        else:
-            attributes_form[attribute_name]["attributes"] = [attributes]
+        attributes_form[attribute_name].setdefault("attributes", []).append(
+            {level2_name: attribute_details}
+        )
 
     for claim in level3_claims:
 
@@ -559,12 +672,17 @@ def getOptionalAttributesSDJWT(claims):
 
         for attribute in attributes_form[attribute_name]["attributes"]:
             if level2_name in attribute:
+                # A second-level group is a list of its third-level
+                # attributes, as in getMandatoryAttributesSDJWT.
+                if "attributes" not in attribute[level2_name]:
+                    attribute[level2_name]["type"] = "list"
                 attribute[level2_name].setdefault("attributes", []).append(
                     {
                         level3_name: {
                             "mandatory": claim["mandatory"],
                             "type": claim["value_type"],
                             "source": claim["source"],
+                            **_form_hints(claim),
                         }
                     }
                 )

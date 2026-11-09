@@ -688,3 +688,110 @@ class TestAdditionalCoverage:
     def test_getSubClaims_missing_vct(self):
         result = misc.getSubClaims("nonexistent", "missing_vct")
         assert result == []
+
+
+class TestSDJWTFormHints:
+    """Closed value lists and input patterns reach the form, at every level."""
+
+    CLAIMS = [
+        {"path": ["type"], "mandatory": True, "value_type": "string", "source": "user",
+         "issuer_conditions": {"options": ["PURCHASE", "RETURN"]}},
+        {"path": ["account"], "mandatory": True, "value_type": "account_attributes",
+         "source": "user", "issuer_conditions": {"cardinality": {"min": 1, "max": 1}}},
+        {"path": ["account", "iban"], "mandatory": True, "value_type": "string",
+         "source": "user", "issuer_conditions": {"pattern": "^[A-Z]{2}[0-9A-Z]{13,30}$"}},
+        {"path": ["journey"], "mandatory": False, "value_type": "journey_attributes",
+         "source": "user", "issuer_conditions": {"cardinality": {"min": 0, "max": 1}}},
+        {"path": ["journey", "origin"], "mandatory": True, "value_type": "origin_attributes",
+         "source": "user", "issuer_conditions": {"cardinality": {"min": 1, "max": 1}}},
+        {"path": ["journey", "origin", "country"], "mandatory": False, "value_type": "string",
+         "source": "user", "issuer_conditions": {"pattern": "^[A-Z]{2}$"}},
+    ]
+
+    def test_mandatory_attributes(self):
+        form = misc.getMandatoryAttributesSDJWT(self.CLAIMS)
+        assert form["type"]["options"] == ["PURCHASE", "RETURN"]
+        assert form["account"]["attributes"] == [
+            {"iban": {"mandatory": True, "type": "string", "source": "user",
+                      "pattern": "^[A-Z]{2}[0-9A-Z]{13,30}$"}}
+        ]
+
+    def test_optional_second_level_group_is_a_list(self):
+        form = misc.getOptionalAttributesSDJWT(self.CLAIMS)
+        origin = form["journey"]["attributes"][0]["origin"]
+        assert origin["type"] == "list"
+        assert origin["attributes"] == [
+            {"country": {"mandatory": False, "type": "string", "source": "user",
+                         "pattern": "^[A-Z]{2}$"}}
+        ]
+
+
+class TestClaimPaths:
+    """Metadata paths are claims path pointers, with a null segment after
+    every array; the form is built from the names only."""
+
+    CLAIMS = [
+        {"path": ["products"], "mandatory": True, "value_type": "products_attributes",
+         "source": "user", "issuer_conditions": {"cardinality": {"min": 1, "max": "n"}}},
+        {"path": ["products", None, "name"], "mandatory": True, "value_type": "string",
+         "source": "user"},
+        {"path": ["products", None, "vats"], "mandatory": True, "value_type": "vats_attributes",
+         "source": "user", "issuer_conditions": {"cardinality": {"min": 1, "max": "n"}}},
+        {"path": ["products", None, "vats", None, "vat_rate"], "mandatory": True,
+         "value_type": "string", "source": "user"},
+        {"path": ["merchant"], "mandatory": True, "value_type": "merchant_attributes",
+         "source": "user", "issuer_conditions": {"cardinality": {"min": 1, "max": 1}}},
+        {"path": ["provider"], "mandatory": True, "source": "issuer"},
+        {"path": ["provider", "ids", None, "value"], "mandatory": True, "source": "issuer"},
+    ]
+
+    def test_form_ignores_array_segments(self):
+        form = misc.getMandatoryAttributesSDJWT(self.CLAIMS)
+        products = form["products"]["attributes"]
+        assert {"name": {"mandatory": True, "type": "string", "source": "user"}} in products
+        vats = next(a["vats"] for a in products if "vats" in a)
+        assert vats["attributes"] == [
+            {"vat_rate": {"mandatory": True, "type": "string", "source": "user"}}
+        ]
+        # The metadata itself is left as it is.
+        assert self.CLAIMS[1]["path"] == ["products", None, "name"]
+
+    def test_array_claims(self):
+        assert misc.array_claims(self.CLAIMS) == {
+            ("products",), ("products", "vats"), ("provider", "ids"),
+        }
+        # Single-occurrence groups stay lists where that shape is kept.
+        assert ("merchant",) in misc.array_claims(self.CLAIMS, single_groups_as_objects=False)
+
+    def test_with_array_segments(self):
+        arrays = {("products",), ("products", "vats")}
+        assert misc.with_array_segments(("products", "vats", "vat_rate"), arrays) == [
+            "products", None, "vats", None, "vat_rate"
+        ]
+        assert misc.with_array_segments(("products",), arrays) == ["products"]
+
+
+class TestOptionalGroupRules:
+    """An optional group's rules stay inside its attributes, where the form
+    reads them, and do not show up as attributes of their own."""
+
+    CLAIMS = [
+        {"path": ["representative"], "mandatory": False, "value_type": "representative_attributes",
+         "source": "user", "issuer_conditions": {"cardinality": {"min": 0, "max": "n"}}},
+        {"path": ["representative", None, "natural_person"], "mandatory": False,
+         "value_type": "natural_person_attributes", "source": "user",
+         "issuer_conditions": {"cardinality": {"min": 0, "max": 1},
+                               "not_used_if": {"logic": "any", "attributes": ["legal_person"]}}},
+        {"path": ["representative", None, "legal_person"], "mandatory": False,
+         "value_type": "legal_person_attributes", "source": "user",
+         "issuer_conditions": {"cardinality": {"min": 0, "max": 1},
+                               "not_used_if": {"logic": "any", "attributes": ["natural_person"]}}},
+    ]
+
+    def test_rules_inside_the_attributes(self):
+        attributes = misc.getOptionalAttributesSDJWT(self.CLAIMS)["representative"]["attributes"]
+        names = [name for item in attributes for name in item]
+        assert names == ["natural_person", "legal_person"]
+        natural = attributes[0]["natural_person"]
+        assert natural["cardinality"] == {"min": 0, "max": 1}
+        assert natural["not_used_if"]["attributes"] == ["legal_person"]

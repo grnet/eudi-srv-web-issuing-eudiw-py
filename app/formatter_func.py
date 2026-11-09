@@ -45,7 +45,14 @@ import jwt
 import logging
 import copy
 
-from misc import doctype2vct, getSubClaims, urlsafe_b64encode_nopad, vct2doctype
+from misc import (
+    doctype2vct,
+    getSubClaims,
+    is_disclosable,
+    sd_flags,
+    urlsafe_b64encode_nopad,
+    vct2doctype,
+)
 from app_config.config_service import ConfService as cfgservice
 
 from app import session_manager
@@ -251,73 +258,39 @@ def cbor2elems(mdoc):
     return d
 
 
+def _sd_key(name, sd):
+    return SDObj(value=name) if sd else name
+
+
+def _sd_value(value, path, flags):
+    """The value of the claim at path, its object members made disclosable
+    as misc.is_disclosable says, in every array element."""
+    if isinstance(value, dict):
+        return {
+            _sd_key(k, is_disclosable(path + (k,), flags)): _sd_value(v, path + (k,), flags)
+            for k, v in value.items()
+        }
+    if isinstance(value, list):
+        return [_sd_value(element, path, flags) for element in value]
+    return value
+
+
 def sdjwtNestedClaims(claims, credential_metadata):
 
     nestedDict = {}
 
-    sd_map = {}
-    if (
-        "credential_metadata" in credential_metadata
-        and "claims" in credential_metadata["credential_metadata"]
-    ):
-        for claim_meta in credential_metadata["credential_metadata"]["claims"]:
-            # Use the last part of the 'path' as the claim name
-            if "overall_issuer_conditions" in claim_meta:
-                continue
-            claim_name = claim_meta["path"][-1]
-            sd_map[claim_name] = claim_meta.get("selective_disclosure", True)
+    flags = sd_flags(credential_metadata.get("credential_metadata", {}).get("claims", []))
 
     for claim, value in claims.items():
-        if sd_map.get(claim, True):
-            if isinstance(value, list) and claim != "nationalities" and len(value) > 1:
-                subClaims = []
-                for element in value:
-                    if isinstance(element, dict):
-                        subClaimsElement = {}
-                        for attribute, value2 in element.items():
-                            subClaimsElement.update({SDObj(value=attribute): value2})
+        sd = is_disclosable((claim,), flags)
 
-                        subClaims.append(subClaimsElement)
-
-                    else:
-                        subClaims.append(element)
-
-                nestedDict.update({SDObj(value=claim): subClaims})
-
-            elif (
-                isinstance(value, list) and claim != "nationalities" and len(value) == 1
-            ):
-                subClaims = []
-                for element in value:
-                    if isinstance(element, dict):
-                        subClaimsElement = {}
-                        for attribute, value2 in element.items():
-                            subClaimsElement.update({SDObj(value=attribute): value2})
-                        subClaims.append(subClaimsElement)
-                    else:
-                        subClaims.append(element)
-
-                nestedDict.update({SDObj(value=claim): subClaims})
-
-            elif isinstance(value, dict):
-                subClaims = {}
-                for attribute, value2 in value.items():
-                    subClaims.update({SDObj(value=attribute): value2})
-
-                nestedDict.update({SDObj(value=claim): subClaims})
-
-            elif isinstance(value, list) and claim == "nationalities":
-                nationalitiesArray = []
-                for nationality in value:
-                    nationalitiesArray.append(SDObj(value=nationality))
-
-                nestedDict.update({SDObj(value=claim): nationalitiesArray})
-
-            else:
-                nestedDict.update({SDObj(value=claim): value})
+        if isinstance(value, list) and claim == "nationalities" and sd:
+            nestedDict.update(
+                {SDObj(value=claim): [SDObj(value=nationality) for nationality in value]}
+            )
 
         else:
-            nestedDict.update({claim: value})
+            nestedDict.update({_sd_key(claim, sd): _sd_value(value, (claim,), flags)})
 
     return nestedDict
 
