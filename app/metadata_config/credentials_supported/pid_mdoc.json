@@ -128,6 +128,21 @@
          {
             "path":[
                "eu.europa.ec.eudi.pid.1",
+               "birth_place"
+            ],
+            "mandatory":true,
+            "value_type":"full-date",
+            "source":"user",
+            "display":[
+               {
+                  "name":"Birth Place",
+                  "locale":"en"
+               }
+            ]
+         },
+         {
+            "path":[
+               "eu.europa.ec.eudi.pid.1",
                "family_name_birth"
             ],
             "mandatory":false,
@@ -321,6 +336,21 @@
          {
             "path":[
                "eu.europa.ec.eudi.pid.1",
+               "unique_persistent_identifier"
+            ],
+            "mandatory":false,
+            "value_type":"string",
+            "source":"user",
+            "display":[
+               {
+                  "name":"Unique Persistent Identifier",
+                  "locale":"en"
+               }
+            ]
+         },
+         {
+            "path":[
+               "eu.europa.ec.eudi.pid.1",
                "sex"
             ],
             "mandatory":false,
@@ -429,6 +459,20 @@
             "display":[
                {
                   "name":"Issuance Authority",
+                  "locale":"en"
+               }
+            ]
+         },
+         {
+            "path":[
+               "eu.europa.ec.eudi.pid.1",
+               "attestation_legal_category"
+            ],
+            "mandatory":true,
+            "source":"issuer",
+            "display":[
+               {
+                  "name":"Attestation Legal Category",
                   "locale":"en"
                }
             ]
