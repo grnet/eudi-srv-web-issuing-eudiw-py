@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import logging
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from app.core.config import CONFIGURATION
@@ -44,6 +45,8 @@ from app.services.countries import issuing_country_code
 from app.services.formatters import mdocFormatter, sdjwtFormatter
 from app.services.sca_card import add_special_claims, sca_card_display
 from app.utils.dates import calculate_age, format_date
+
+logger = logging.getLogger(__name__)
 
 #: Scopes for which the UN distinguishing sign of the country is added.
 MDL_SCOPES = ("eu.europa.ec.eudi.mdl_mdoc", "eu.europa.ec.eudi.aamva_mdl_mdoc")
@@ -93,7 +96,7 @@ def dynamic_formatter(
 
     match format:
         case "mso_mdoc":
-            return mdocFormatter(
+            res = mdocFormatter(
                 data=data,
                 credential_metadata=requested_credential,
                 country=current_session.country,
@@ -101,7 +104,7 @@ def dynamic_formatter(
                 session_id=session_id,
             )
         case "dc+sd-jwt":
-            return sdjwtFormatter(
+            res = sdjwtFormatter(
                 PID={
                     "credential_metadata": requested_credential,
                     "data": data,
@@ -113,6 +116,11 @@ def dynamic_formatter(
             )
         case _:
             raise ValueError(f"Unsupported credential format: {format}")
+
+    logger.info("dynamic_formatter, resulting credential:")
+    logger.info(res)
+
+    return res
 
 
 def formatter(
