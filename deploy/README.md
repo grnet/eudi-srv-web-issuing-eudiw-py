@@ -426,6 +426,16 @@ wallet from another provider on the Commission's list gets its wallet
 attestation accepted by the OIDC server, and then its key attestation refused
 here.
 
+## Greek PID issuance
+
+Greek PID issuance is based on OIDC integration with the Gov.gr
+authentication service running in pre-production mode. This uses
+branch `eudiw-oidc-service` in the authentication service, which only
+supports the "demo" Identity Provider. The hostname and client ID of
+the deployed OIDC service are hard-coded as environment variables
+`GR_OIDC_BASE_URL`/`GR_OIDC_CLIENT_ID` in `stack.env`. The client
+secret is set as secret `GR_OIDC_CLIENT_SECRET`.
+
 ## Still to sort
 
 - **Revocation of wallet and key attestations is not checked.** EU's status
