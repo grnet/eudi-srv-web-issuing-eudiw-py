@@ -565,6 +565,7 @@ def _finish(
     Returns:
         ``(response, 200 | 202)`` or an encryption error response.
     """
+    logger.info("_finish()/response:", response)
     current_session = session_manager.get_session(session_id=session_id)
     if not is_deferred and current_session and current_session.client_status:
         persist_client_status(session_id, current_session.client_status)
