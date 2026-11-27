@@ -1,0 +1,1754 @@
+{
+  "eu.europa.ec.eudi.mVRC_mdoc": {
+    "format": "mso_mdoc",
+    "doctype": "org.iso.7367.2.1.mVC",
+    "scope": "eu.europa.ec.eudi.mVRC_mdoc",
+    "policy": {
+      "batch_size": 15,
+      "one_time_use": true
+    },
+    "cryptographic_binding_methods_supported": [
+      "jwk",
+      "cose_key"
+    ],
+    "credential_signing_alg_values_supported": [
+      -7
+    ],
+    "proof_types_supported": {
+      "jwt": {
+        "proof_signing_alg_values_supported": [
+          "ES256",
+          "ES384",
+          "ES512"
+        ],
+        "key_attestations_required": {
+          "key_storage": [
+            "iso_18045_high"
+          ],
+          "user_authentication": [
+            "iso_18045_high"
+          ],
+          "preferred_key_storage_status_period": 2678400
+        }
+      },
+      "attestation": {
+        "proof_signing_alg_values_supported": [
+          "ES256",
+          "ES384",
+          "ES512"
+        ],
+        "key_attestations_required": {
+          "key_storage": [
+            "iso_18045_high"
+          ],
+          "user_authentication": [
+            "iso_18045_high"
+          ],
+          "preferred_key_storage_status_period": 2678400
+        }
+      }
+    },
+    "credential_metadata": {
+      "display": [
+        {
+          "name": "EU Mobile Vehicle Registration Certificate (MSO Mdoc)",
+          "locale": "en",
+          "logo": {
+            "uri": "https://examplestate.com/public/mvc.png",
+            "alt_text": "A square figure of a Mobile Vehicle Registration Certificate"
+          }
+        }
+      ],
+      "credential_reuse_policy": {
+        "id": "arf_annex_ii",
+        "options": [
+          {
+            "details": [
+              "limited_time"
+            ],
+            "reissue_trigger_lifetime_left": 7776000
+          }
+        ]
+      },
+      "claims": [
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "issue_date"
+          ],
+          "mandatory": true,
+          "source": "issuer",
+          "display": [
+            {
+              "name": "Issue Date",
+              "locale": "en"
+            }
+          ]
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "expiry_date"
+          ],
+          "mandatory": true,
+          "source": "issuer",
+          "display": [
+            {
+              "name": "Expiry Date",
+              "locale": "en"
+            }
+          ]
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "issuing_authority_unicode"
+          ],
+          "mandatory": true,
+          "source": "issuer",
+          "display": [
+            {
+              "name": "Issuing Authority",
+              "locale": "en"
+            }
+          ]
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "issuing_authority_latin1"
+          ],
+          "mandatory": true,
+          "source": "issuer",
+          "display": [
+            {
+              "name": "Issuing Authority (Latin1)",
+              "locale": "en"
+            }
+          ]
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "issuing_country"
+          ],
+          "mandatory": true,
+          "source": "issuer",
+          "display": [
+            {
+              "name": "Issuing Country",
+              "locale": "en"
+            }
+          ]
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "issuing_subdivision"
+          ],
+          "mandatory": false,
+          "value_type": "string",
+          "source": "user",
+          "display": [
+            {
+              "name": "Issuing Subdivision",
+              "locale": "en"
+            }
+          ]
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "document_number"
+          ],
+          "mandatory": true,
+          "value_type": "string",
+          "source": "user",
+          "display": [
+            {
+              "name": "Document Number",
+              "locale": "en"
+            }
+          ]
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "un_distinguishing_sign"
+          ],
+          "mandatory": true,
+          "value_type": "string",
+          "source": "user",
+          "display": [
+            {
+              "name": "UN Distinguishing Sign",
+              "locale": "en"
+            }
+          ]
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "registration_number"
+          ],
+          "mandatory": true,
+          "value_type": "string",
+          "source": "user",
+          "display": [
+            {
+              "name": "Registration Number (A)",
+              "locale": "en"
+            }
+          ]
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "registration_number_type"
+          ],
+          "mandatory": false,
+          "value_type": "string",
+          "source": "user",
+          "display": [
+            {
+              "name": "Registration Number Type",
+              "locale": "en"
+            }
+          ]
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "register_number"
+          ],
+          "mandatory": false,
+          "value_type": "string",
+          "source": "user",
+          "display": [
+            {
+              "name": "Register Number",
+              "locale": "en"
+            }
+          ]
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "date_of_registration"
+          ],
+          "mandatory": true,
+          "value_type": "full-date",
+          "source": "user",
+          "display": [
+            {
+              "name": "Date of Registration (I)",
+              "locale": "en"
+            }
+          ]
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "year_of_manufacturing"
+          ],
+          "mandatory": false,
+          "value_type": "uint",
+          "source": "user",
+          "display": [
+            {
+              "name": "Year of Manufacturing",
+              "locale": "en"
+            }
+          ]
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "date_of_first_registration"
+          ],
+          "mandatory": true,
+          "value_type": "full-date",
+          "source": "user",
+          "display": [
+            {
+              "name": "Date of First Registration (B)",
+              "locale": "en"
+            }
+          ]
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "document_number_techn_insp_report"
+          ],
+          "mandatory": false,
+          "value_type": "string",
+          "source": "user",
+          "display": [
+            {
+              "name": "Document Number Technical Inspection Report",
+              "locale": "en"
+            }
+          ]
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "approval_date_technical_inspection"
+          ],
+          "mandatory": false,
+          "value_type": "full-date",
+          "source": "user",
+          "display": [
+            {
+              "name": "Approval Date Technical Inspection",
+              "locale": "en"
+            }
+          ]
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "expiry_date_technical_inspection"
+          ],
+          "mandatory": false,
+          "value_type": "full-date",
+          "source": "user",
+          "display": [
+            {
+              "name": "Expiry Date Technical Inspection (X)",
+              "locale": "en"
+            }
+          ]
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "chassis_number_info"
+          ],
+          "mandatory": true,
+          "value_type": "chassis_number_info_attributes",
+          "source": "user",
+          "display": [
+            {
+              "name": "Vehicle Identification Number (E)",
+              "locale": "en"
+            }
+          ],
+          "issuer_conditions": {
+            "cardinality": {
+              "min": 1,
+              "max": 1
+            },
+            "chassis_number_info_attributes": {
+              "vehicle_identification_number": {
+                "mandatory": true,
+                "value_type": "string",
+                "source": "user"
+              },
+              "vehicle_register_number": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              }
+            }
+          }
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "users"
+          ],
+          "mandatory": true,
+          "value_type": "users_attributes",
+          "source": "user",
+          "display": [
+            {
+              "name": "Holder of the Registration Certificate (C.1)",
+              "locale": "en"
+            }
+          ],
+          "issuer_conditions": {
+            "cardinality": {
+              "min": 1,
+              "max": 1
+            },
+            "users_attributes": {
+              "naturalPerson": {
+                "mandatory": false,
+                "value_type": "naturalPerson_attributes",
+                "source": "user",
+                "issuer_conditions": {
+                  "cardinality": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "not_used_if": {
+                    "logic": "any",
+                    "attributes": [
+                      "organization"
+                    ]
+                  },
+                  "naturalPerson_attributes": {
+                    "full_address": {
+                      "mandatory": true,
+                      "value_type": "full_address_attributes",
+                      "source": "user",
+                      "issuer_conditions": {
+                        "cardinality": {
+                          "min": 1,
+                          "max": 1
+                        },
+                        "full_address_attributes": {
+                          "address": {
+                            "mandatory": true,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "address_latin1": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "city": {
+                            "mandatory": true,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "city_latin1": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "state": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "state_latin1": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "postal_code": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "country": {
+                            "mandatory": true,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "supplemental_location_data": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          }
+                        }
+                      }
+                    },
+                    "family_name": {
+                      "mandatory": true,
+                      "value_type": "string",
+                      "source": "user"
+                    },
+                    "family_name_latin1": {
+                      "mandatory": false,
+                      "value_type": "string",
+                      "source": "user"
+                    },
+                    "given_name": {
+                      "mandatory": true,
+                      "value_type": "string",
+                      "source": "user"
+                    },
+                    "given_name_latin1": {
+                      "mandatory": false,
+                      "value_type": "string",
+                      "source": "user"
+                    },
+                    "supplemental_person_data": {
+                      "mandatory": false,
+                      "value_type": "supplemental_person_data_attributes",
+                      "source": "user",
+                      "issuer_conditions": {
+                        "cardinality": {
+                          "min": 0,
+                          "max": 1
+                        },
+                        "supplemental_person_data_attributes": {
+                          "email": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "rel_holder_to_owner": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "additional_info": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "organization": {
+                "mandatory": false,
+                "value_type": "organization_attributes",
+                "source": "user",
+                "issuer_conditions": {
+                  "cardinality": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "not_used_if": {
+                    "logic": "any",
+                    "attributes": [
+                      "naturalPerson"
+                    ]
+                  },
+                  "organization_attributes": {
+                    "full_address": {
+                      "mandatory": true,
+                      "value_type": "full_address_attributes",
+                      "source": "user",
+                      "issuer_conditions": {
+                        "cardinality": {
+                          "min": 1,
+                          "max": 1
+                        },
+                        "full_address_attributes": {
+                          "address": {
+                            "mandatory": true,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "address_latin1": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "city": {
+                            "mandatory": true,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "city_latin1": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "state": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "state_latin1": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "postal_code": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "country": {
+                            "mandatory": true,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "supplemental_location_data": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          }
+                        }
+                      }
+                    },
+                    "organization_name": {
+                      "mandatory": true,
+                      "value_type": "string",
+                      "source": "user"
+                    },
+                    "organization_name_latin1": {
+                      "mandatory": false,
+                      "value_type": "string",
+                      "source": "user"
+                    },
+                    "supplemental_organization_data": {
+                      "mandatory": false,
+                      "value_type": "supplemental_organization_data_attributes",
+                      "source": "user",
+                      "issuer_conditions": {
+                        "cardinality": {
+                          "min": 0,
+                          "max": 1
+                        },
+                        "supplemental_organization_data_attributes": {
+                          "email": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "rel_holder_to_owner": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "additional_info": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "owners"
+          ],
+          "mandatory": false,
+          "value_type": "owners_attributes",
+          "source": "user",
+          "display": [
+            {
+              "name": "Owner(s) of the Vehicle (C.2)",
+              "locale": "en"
+            }
+          ],
+          "issuer_conditions": {
+            "cardinality": {
+              "min": 0,
+              "max": "n"
+            },
+            "owners_attributes": {
+              "naturalPerson": {
+                "mandatory": false,
+                "value_type": "naturalPerson_attributes",
+                "source": "user",
+                "issuer_conditions": {
+                  "cardinality": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "not_used_if": {
+                    "logic": "any",
+                    "attributes": [
+                      "organization"
+                    ]
+                  },
+                  "naturalPerson_attributes": {
+                    "full_address": {
+                      "mandatory": true,
+                      "value_type": "full_address_attributes",
+                      "source": "user",
+                      "issuer_conditions": {
+                        "cardinality": {
+                          "min": 1,
+                          "max": 1
+                        },
+                        "full_address_attributes": {
+                          "address": {
+                            "mandatory": true,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "address_latin1": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "city": {
+                            "mandatory": true,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "city_latin1": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "state": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "state_latin1": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "postal_code": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "country": {
+                            "mandatory": true,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "supplemental_location_data": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          }
+                        }
+                      }
+                    },
+                    "family_name": {
+                      "mandatory": true,
+                      "value_type": "string",
+                      "source": "user"
+                    },
+                    "family_name_latin1": {
+                      "mandatory": false,
+                      "value_type": "string",
+                      "source": "user"
+                    },
+                    "given_name": {
+                      "mandatory": true,
+                      "value_type": "string",
+                      "source": "user"
+                    },
+                    "given_name_latin1": {
+                      "mandatory": false,
+                      "value_type": "string",
+                      "source": "user"
+                    },
+                    "supplemental_person_data": {
+                      "mandatory": false,
+                      "value_type": "supplemental_person_data_attributes",
+                      "source": "user",
+                      "issuer_conditions": {
+                        "cardinality": {
+                          "min": 0,
+                          "max": 1
+                        },
+                        "supplemental_person_data_attributes": {
+                          "email": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "rel_holder_to_owner": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "additional_info": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "organization": {
+                "mandatory": false,
+                "value_type": "organization_attributes",
+                "source": "user",
+                "issuer_conditions": {
+                  "cardinality": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "not_used_if": {
+                    "logic": "any",
+                    "attributes": [
+                      "naturalPerson"
+                    ]
+                  },
+                  "organization_attributes": {
+                    "full_address": {
+                      "mandatory": true,
+                      "value_type": "full_address_attributes",
+                      "source": "user",
+                      "issuer_conditions": {
+                        "cardinality": {
+                          "min": 1,
+                          "max": 1
+                        },
+                        "full_address_attributes": {
+                          "address": {
+                            "mandatory": true,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "address_latin1": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "city": {
+                            "mandatory": true,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "city_latin1": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "state": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "state_latin1": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "postal_code": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "country": {
+                            "mandatory": true,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "supplemental_location_data": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          }
+                        }
+                      }
+                    },
+                    "organization_name": {
+                      "mandatory": true,
+                      "value_type": "string",
+                      "source": "user"
+                    },
+                    "organization_name_latin1": {
+                      "mandatory": false,
+                      "value_type": "string",
+                      "source": "user"
+                    },
+                    "supplemental_organization_data": {
+                      "mandatory": false,
+                      "value_type": "supplemental_organization_data_attributes",
+                      "source": "user",
+                      "issuer_conditions": {
+                        "cardinality": {
+                          "min": 0,
+                          "max": 1
+                        },
+                        "supplemental_organization_data_attributes": {
+                          "email": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "rel_holder_to_owner": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "additional_info": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "basic_vehicle_info"
+          ],
+          "mandatory": true,
+          "value_type": "basic_vehicle_info_attributes",
+          "source": "user",
+          "display": [
+            {
+              "name": "Basic Vehicle Information",
+              "locale": "en"
+            }
+          ],
+          "issuer_conditions": {
+            "cardinality": {
+              "min": 1,
+              "max": 1
+            },
+            "basic_vehicle_info_attributes": {
+              "vehicle_category_code": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              },
+              "vehicle_category_national": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              },
+              "approval_number": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              },
+              "make": {
+                "mandatory": true,
+                "value_type": "string",
+                "source": "user"
+              },
+              "type": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              },
+              "variant": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              },
+              "version": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              },
+              "commercial_name": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              },
+              "colours": {
+                "mandatory": false,
+                "value_type": "colours_attributes",
+                "source": "user",
+                "issuer_conditions": {
+                  "cardinality": {
+                    "min": 0,
+                    "max": "n"
+                  },
+                  "colours_attributes": {
+                    "colour": {
+                      "mandatory": true,
+                      "value_type": "uint",
+                      "source": "user"
+                    }
+                  }
+                }
+              },
+              "automation_level": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "status_vehicle": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              }
+            }
+          }
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "mass_info"
+          ],
+          "mandatory": false,
+          "value_type": "mass_info_attributes",
+          "source": "user",
+          "display": [
+            {
+              "name": "Mass Information",
+              "locale": "en"
+            }
+          ],
+          "issuer_conditions": {
+            "cardinality": {
+              "min": 0,
+              "max": 1
+            },
+            "mass_info_attributes": {
+              "techn_perm_max_laden_mass": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "vehicle_max_mass": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "mass_in_running_order": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "mass_in_running_order_variable_min": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "mass_in_running_order_variable_max": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              }
+            }
+          }
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "towed_trailer_mass_info"
+          ],
+          "mandatory": false,
+          "value_type": "towed_trailer_mass_info_attributes",
+          "source": "user",
+          "display": [
+            {
+              "name": "Towed Trailer Mass Information",
+              "locale": "en"
+            }
+          ],
+          "issuer_conditions": {
+            "cardinality": {
+              "min": 0,
+              "max": 1
+            },
+            "towed_trailer_mass_info_attributes": {
+              "tech_perm_max_tow_mass": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "technically_permissible_maximum_combination_mass": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "braked_type_trail_code": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              },
+              "type_trailer_code": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              }
+            }
+          }
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "engine_info"
+          ],
+          "mandatory": false,
+          "value_type": "engine_info_attributes",
+          "source": "user",
+          "display": [
+            {
+              "name": "Engine Information",
+              "locale": "en"
+            }
+          ],
+          "issuer_conditions": {
+            "cardinality": {
+              "min": 0,
+              "max": 1
+            },
+            "engine_info_attributes": {
+              "engine_number": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              },
+              "engine_capacity": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "engine_power": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "class_of_hybrid_vehicle_code": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              },
+              "energy_sources": {
+                "mandatory": false,
+                "value_type": "list_string",
+                "source": "user"
+              }
+            }
+          }
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "seating_info"
+          ],
+          "mandatory": false,
+          "value_type": "seating_info_attributes",
+          "source": "user",
+          "display": [
+            {
+              "name": "Seating Information",
+              "locale": "en"
+            }
+          ],
+          "issuer_conditions": {
+            "cardinality": {
+              "min": 0,
+              "max": 1
+            },
+            "seating_info_attributes": {
+              "number_of_seating_positions_including_driver": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "number_of_standing_places": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              }
+            }
+          }
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1",
+            "dimensions_info"
+          ],
+          "mandatory": false,
+          "value_type": "dimensions_info_attributes",
+          "source": "user",
+          "display": [
+            {
+              "name": "Dimensions Information",
+              "locale": "en"
+            }
+          ],
+          "issuer_conditions": {
+            "cardinality": {
+              "min": 0,
+              "max": 1
+            },
+            "dimensions_info_attributes": {
+              "wheelbase": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "wheelbase_adjustable_min": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "wheelbase_adjustable_max": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "length": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "length_adjustable_min": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "length_adjustable_max": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "width": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "width_adjustable_min": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "width_adjustable_max": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "height": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "height_adjustable_min": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "height_adjustable_max": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "distance_frontend_centrecoupling": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "distance_frontend_centrecoupling_adjustable_min": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "distance_frontend_centrecoupling_adjustable_max": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "distance_centrecoupling_rearend": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "distance_centrecoupling_rearend_adjustable_min": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "distance_centrecoupling_rearend_adjustable_max": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              }
+            }
+          }
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1.EU.1",
+            "vehicle_info_ext_eu"
+          ],
+          "mandatory": false,
+          "value_type": "vehicle_info_ext_eu_attributes",
+          "source": "user",
+          "display": [
+            {
+              "name": "Vehicle Information Extended EU",
+              "locale": "en"
+            }
+          ],
+          "issuer_conditions": {
+            "cardinality": {
+              "min": 0,
+              "max": 1
+            },
+            "vehicle_info_ext_eu_attributes": {
+              "bodywork": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              },
+              "whole_vehicle_max_mass": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "power_mass_ratio": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "rated_speed": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "max_speed": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "fuel_tank": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              }
+            }
+          }
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1.EU.1",
+            "consumer_info_eu"
+          ],
+          "mandatory": false,
+          "value_type": "consumer_info_eu_attributes",
+          "source": "user",
+          "display": [
+            {
+              "name": "Consumer (C.3)",
+              "locale": "en"
+            }
+          ],
+          "issuer_conditions": {
+            "cardinality": {
+              "min": 0,
+              "max": 1
+            },
+            "consumer_info_eu_attributes": {
+              "naturalPerson": {
+                "mandatory": false,
+                "value_type": "naturalPerson_attributes",
+                "source": "user",
+                "issuer_conditions": {
+                  "cardinality": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "not_used_if": {
+                    "logic": "any",
+                    "attributes": [
+                      "organization"
+                    ]
+                  },
+                  "naturalPerson_attributes": {
+                    "full_address": {
+                      "mandatory": true,
+                      "value_type": "full_address_attributes",
+                      "source": "user",
+                      "issuer_conditions": {
+                        "cardinality": {
+                          "min": 1,
+                          "max": 1
+                        },
+                        "full_address_attributes": {
+                          "address": {
+                            "mandatory": true,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "address_latin1": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "city": {
+                            "mandatory": true,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "city_latin1": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "state": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "state_latin1": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "postal_code": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "country": {
+                            "mandatory": true,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "supplemental_location_data": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          }
+                        }
+                      }
+                    },
+                    "family_name": {
+                      "mandatory": true,
+                      "value_type": "string",
+                      "source": "user"
+                    },
+                    "family_name_latin1": {
+                      "mandatory": false,
+                      "value_type": "string",
+                      "source": "user"
+                    },
+                    "given_name": {
+                      "mandatory": true,
+                      "value_type": "string",
+                      "source": "user"
+                    },
+                    "given_name_latin1": {
+                      "mandatory": false,
+                      "value_type": "string",
+                      "source": "user"
+                    },
+                    "supplemental_person_data": {
+                      "mandatory": false,
+                      "value_type": "supplemental_person_data_attributes",
+                      "source": "user",
+                      "issuer_conditions": {
+                        "cardinality": {
+                          "min": 0,
+                          "max": 1
+                        },
+                        "supplemental_person_data_attributes": {
+                          "email": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "rel_holder_to_owner": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "additional_info": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "organization": {
+                "mandatory": false,
+                "value_type": "organization_attributes",
+                "source": "user",
+                "issuer_conditions": {
+                  "cardinality": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "not_used_if": {
+                    "logic": "any",
+                    "attributes": [
+                      "naturalPerson"
+                    ]
+                  },
+                  "organization_attributes": {
+                    "full_address": {
+                      "mandatory": true,
+                      "value_type": "full_address_attributes",
+                      "source": "user",
+                      "issuer_conditions": {
+                        "cardinality": {
+                          "min": 1,
+                          "max": 1
+                        },
+                        "full_address_attributes": {
+                          "address": {
+                            "mandatory": true,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "address_latin1": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "city": {
+                            "mandatory": true,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "city_latin1": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "state": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "state_latin1": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "postal_code": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "country": {
+                            "mandatory": true,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "supplemental_location_data": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          }
+                        }
+                      }
+                    },
+                    "organization_name": {
+                      "mandatory": true,
+                      "value_type": "string",
+                      "source": "user"
+                    },
+                    "organization_name_latin1": {
+                      "mandatory": false,
+                      "value_type": "string",
+                      "source": "user"
+                    },
+                    "supplemental_organization_data": {
+                      "mandatory": false,
+                      "value_type": "supplemental_organization_data_attributes",
+                      "source": "user",
+                      "issuer_conditions": {
+                        "cardinality": {
+                          "min": 0,
+                          "max": 1
+                        },
+                        "supplemental_organization_data_attributes": {
+                          "email": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "rel_holder_to_owner": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          },
+                          "additional_info": {
+                            "mandatory": false,
+                            "value_type": "string",
+                            "source": "user"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1.EU.1",
+            "axle_info_eu"
+          ],
+          "mandatory": false,
+          "value_type": "axle_info_eu_attributes",
+          "source": "user",
+          "display": [
+            {
+              "name": "Axle Information",
+              "locale": "en"
+            }
+          ],
+          "issuer_conditions": {
+            "cardinality": {
+              "min": 0,
+              "max": 1
+            },
+            "axle_info_eu_attributes": {
+              "number_of_axles": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "axle_info": {
+                "mandatory": false,
+                "value_type": "axle_info_attributes",
+                "source": "user",
+                "issuer_conditions": {
+                  "cardinality": {
+                    "min": 0,
+                    "max": "n"
+                  },
+                  "axle_info_attributes": {
+                    "axle_number": {
+                      "mandatory": false,
+                      "value_type": "uint",
+                      "source": "user"
+                    },
+                    "techn_perm_max_laden_mass_axle": {
+                      "mandatory": false,
+                      "value_type": "uint",
+                      "source": "user"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "path": [
+            "org.iso.7367.2.1.EU.1",
+            "env_info_eu"
+          ],
+          "mandatory": false,
+          "value_type": "env_info_eu_attributes",
+          "source": "user",
+          "display": [
+            {
+              "name": "Environmental Information",
+              "locale": "en"
+            }
+          ],
+          "issuer_conditions": {
+            "cardinality": {
+              "min": 0,
+              "max": 1
+            },
+            "env_info_eu_attributes": {
+              "sound_stat": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "sound_speed": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "sound_drive_by": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "co": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "co_unit": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              },
+              "thc": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "thc_unit": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              },
+              "nox": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "nox_unit": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              },
+              "thc_nox": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "thc_nox_unit": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              },
+              "pm": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "pm_unit": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              },
+              "corr_abs_coefficient": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "co2": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "co2_unit": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              },
+              "comb_fuel_consumption": {
+                "mandatory": false,
+                "value_type": "uint",
+                "source": "user"
+              },
+              "environmental_category": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              },
+              "co2_emission_class": {
+                "mandatory": false,
+                "value_type": "string",
+                "source": "user"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "issuer_config": {
+      "issuing_authority": "Test QEAA Issuer",
+      "organization_id": "EUDI Wallet Reference Implementation",
+      "validity": 90,
+      "organization_name": "Test QEAA Issuer",
+      "namespace": "org.iso.7367.2.1"
+    }
+  }
+}
