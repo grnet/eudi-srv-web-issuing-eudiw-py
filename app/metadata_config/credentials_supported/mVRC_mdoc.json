@@ -373,10 +373,6 @@
               "min": 1,
               "max": 1
             },
-            "at_least_one_of": [
-              "naturalPerson",
-              "organization"
-            ],
             "users_attributes": {
               "naturalPerson": {
                 "mandatory": false,
